@@ -58,7 +58,11 @@ def get_conf_update_information(confluence, space, theme):
 
 
 if __name__ == '__main__':
-    url, space, theme = sys.argv[1:]
+    try:
+        url, space, theme = sys.argv[1:]
+    except ValueError as err:
+        print("You need to specify three parameters:\n\t1. url e.g. 'http://localhost:8080/'\n\t2. space\n\t3. theme i.e. basic label")
+        sys.exit()
 
     confluence = Confluence(
         url=url,
