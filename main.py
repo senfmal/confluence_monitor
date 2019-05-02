@@ -1,6 +1,4 @@
-
-import sys
-import json
+import os, sys, json
 from gui import MainWindow as mw
 try:
     import Tkinter as tk ## Python 2.x
@@ -12,7 +10,7 @@ if __name__ == '__main__':
         url, space, theme, status_threshold, vorhaben_threshold, block_threshold = sys.argv[1:]
     except ValueError as err:
         try:
-            with open('..\config.json', 'r') as config_file:
+            with open(os.path.dirname(sys.argv[0])+'config\config.json', 'r') as config_file:
                 config = json.load(config_file)
                 url = config['CONNECT']['conf_url']
                 space = config['CONNECT']['conf_space']
