@@ -19,7 +19,17 @@ if __name__ == '__main__':
                 vorhaben_threshold = config['THRESHOLDS']['vorhaben']
                 block_threshold = config['THRESHOLDS']['block']
         except:
-            print("You need to specify six parameters:\n\t1. url e.g. 'http://localhost:8080/'\n\t2. space\n\t3. theme i.e. basic label\n\tThresholds for:\n\t\t4. Status\n\t\t5. Vorhaben\n\t\t6. Blocks")
+        	msg = """
+You need to specify six parameters:
+    1. url e.g. 'http://localhost:8080/'
+    2. space
+    3. theme i.e. basic label
+    Thresholds for:
+        4. Status
+        5. Vorhaben
+        6. Blocks
+        """
+            print(msg)
             print("Alternatively, you could also define a 'config.json' configuration file")
             sys.exit()
 

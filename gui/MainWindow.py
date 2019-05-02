@@ -100,6 +100,7 @@ class Application(tk.Frame):
         self.colA.yview(*args)
         self.colB.yview(*args)
         self.colC.yview(*args)
+        
 
     def OnMouseWheel(self, event):
         if event.num == 5 or event.delta == -120:
@@ -110,6 +111,7 @@ class Application(tk.Frame):
         self.colB.yview("scroll", yFactor, "units")
         self.colC.yview("scroll", yFactor, "units")
         return "break"
+        
 
     def OnSelectionChanged(self, event):
         w = event.widget
@@ -127,9 +129,8 @@ class Application(tk.Frame):
                 self.colC.select_set(index)
         except IndexError:
             return "break"
-
-        #print('You selected item {} --> "{}" in widget {}'.format(index, value, w))
         return "break"
+
 
     def home_pressed(self, event):
         self.colA.see(0)
@@ -139,6 +140,7 @@ class Application(tk.Frame):
         self.colC.see(0)
         self.colC.activate(0)
         self.clear_selection()
+        
 
     def end_pressed(self, event):
         lbox_size = self.colA.size()
@@ -149,6 +151,7 @@ class Application(tk.Frame):
         self.colC.see(lbox_size)
         self.colC.activate(lbox_size)
         self.clear_selection()
+        
 
     def pgup_pressed(self, event):
         self.colA.yview_scroll(-(self.colA["height"]), "units")
@@ -156,6 +159,7 @@ class Application(tk.Frame):
         self.colC.yview_scroll(-(self.colC["height"]), "units")
         self.clear_selection()
         return "break"
+        
 
     def pgdown_pressed(self, event):
         self.colA.yview_scroll(self.colA["height"], "units")
@@ -163,12 +167,14 @@ class Application(tk.Frame):
         self.colC.yview_scroll(self.colC["height"], "units")
         self.clear_selection()
         return "break"
+        
 
     def scroll_listboxes(self, yFactor):
         # function runs when a listbox has focus and the Up or Down arrow is pressed
         self.colA.yview_scroll(yFactor, "units")
         self.colB.yview_scroll(yFactor, "units")
         self.colC.yview_scroll(yFactor, "units")
+        
 
     def clear_selection(self):
         self.colA.selection_clear(0, 'end')
@@ -200,6 +206,7 @@ class Application(tk.Frame):
             self.colB.config(width=0)
             self.colC.config(width=15)
             self.winfo_toplevel().wm_geometry("")
+            
 
     def delete_table(self):
         self.colA.delete(0,'end')
