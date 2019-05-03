@@ -3,12 +3,15 @@ import getpass
 from atlassian import Confluence
 
 
-def acquire_conf_connection(url, username=None):
+def acquire_conf_connection(url, username=None, password=None):
     username = username if username is not None else getpass.getuser()
+    password = password if password is not None else getpass.getpass(
+        "Please insert your password >> "
+    )    
     return Confluence(
         url=url,
         username=username,
-        password=getpass.getpass("Please insert your password >> ")
+        password=password
     )
 
 

@@ -1,4 +1,5 @@
 from confluence.ConfLastUpdated import acquire_conf_connection, get_conf_update_information
+from gui.LoginFrame import LoginFrame
 try:
     import Tkinter as tk ## Python 2.x
 except ImportError:
@@ -17,7 +18,7 @@ class Application(tk.Frame):
         super().__init__(master)
         self.master = master
         self.conf_url = conf_url
-        self.conf_connection = acquire_conf_connection(self.conf_url)
+        self.conf_connection = self.connect_to_confluence()
         self.conf_space = conf_space
         self.conf_theme = conf_theme
         self.status_threshold = status_threshold
@@ -89,18 +90,21 @@ class Application(tk.Frame):
 
         self.display_conf_update_info()
 
+        self.select_table_row(0)
+
+    def select_table_row(self, index):
         self.colA.focus_set()
-        self.colA.activate(0)
-        self.colA.select_set(0)
-        self.colB.select_set(0)
-        self.colC.select_set(0)
+        self.colA.activate(index)
+        self.colA.select_set(index)
+        self.colB.select_set(index)
+        self.colC.select_set(index)
 
 
     def OnVsb(self, *args):
         self.colA.yview(*args)
         self.colB.yview(*args)
         self.colC.yview(*args)
-        
+
 
     def OnMouseWheel(self, event):
         if event.num == 5 or event.delta == -120:
@@ -111,7 +115,7 @@ class Application(tk.Frame):
         self.colB.yview("scroll", yFactor, "units")
         self.colC.yview("scroll", yFactor, "units")
         return "break"
-        
+
 
     def OnSelectionChanged(self, event):
         w = event.widget
@@ -120,13 +124,14 @@ class Application(tk.Frame):
 
             if index != int(self.colA.curselection()[0]):
                 self.colA.selection_clear(0, 'end')
-                self.colA.select_set(index)
+                #self.colA.select_set(index)
             if index != int(self.colB.curselection()[0]):
                 self.colB.selection_clear(0, 'end')
-                self.colB.select_set(index)
+                #self.colB.select_set(index)
             if index != int(self.colC.curselection()[0]):
                 self.colC.selection_clear(0, 'end')
-                self.colC.select_set(index)
+                #self.colC.select_set(index)
+            self.select_table_row(index)
         except IndexError:
             return "break"
         return "break"
@@ -140,7 +145,8 @@ class Application(tk.Frame):
         self.colC.see(0)
         self.colC.activate(0)
         self.clear_selection()
-        
+        self.select_table_row(0)
+
 
     def end_pressed(self, event):
         lbox_size = self.colA.size()
@@ -151,30 +157,39 @@ class Application(tk.Frame):
         self.colC.see(lbox_size)
         self.colC.activate(lbox_size)
         self.clear_selection()
-        
+        self.select_table_row(tk.END)
+
 
     def pgup_pressed(self, event):
         self.colA.yview_scroll(-(self.colA["height"]), "units")
         self.colB.yview_scroll(-(self.colB["height"]), "units")
         self.colC.yview_scroll(-(self.colC["height"]), "units")
+        current_select = int(self.colA.curselection()[0])
+        if current_select - self.colA['height'] < 0:
+            current_select = self.colA['height']
         self.clear_selection()
+        self.select_table_row(current_select - self.colA['height'])
         return "break"
-        
+
 
     def pgdown_pressed(self, event):
         self.colA.yview_scroll(self.colA["height"], "units")
         self.colB.yview_scroll(self.colB["height"], "units")
         self.colC.yview_scroll(self.colC["height"], "units")
+        current_select = int(self.colA.curselection()[0])
+        if current_select + self.colA['height'] > self.colA.size():
+            current_select = self.colA.size() - self.colA['height'] - 1
         self.clear_selection()
+        self.select_table_row(current_select + self.colA['height'])
         return "break"
-        
+
 
     def scroll_listboxes(self, yFactor):
         # function runs when a listbox has focus and the Up or Down arrow is pressed
         self.colA.yview_scroll(yFactor, "units")
         self.colB.yview_scroll(yFactor, "units")
         self.colC.yview_scroll(yFactor, "units")
-        
+
 
     def clear_selection(self):
         self.colA.selection_clear(0, 'end')
@@ -206,9 +221,20 @@ class Application(tk.Frame):
             self.colB.config(width=0)
             self.colC.config(width=15)
             self.winfo_toplevel().wm_geometry("")
-            
+        self.select_table_row(0)
+
 
     def delete_table(self):
         self.colA.delete(0,'end')
         self.colB.delete(0,'end')
         self.colC.delete(0,'end')
+
+
+    def connect_to_confluence(self):
+        login = tk.Tk()
+        login.lift()
+        lf = LoginFrame(login)
+        login.mainloop()
+        connection = acquire_conf_connection(self.conf_url, username=lf.username, password=lf.password)
+        login.destroy()
+        return connection

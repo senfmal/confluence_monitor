@@ -1,0 +1,12 @@
+{
+  "CONNECT": {
+    "conf_url": "http://localhost:8080",
+    "conf_space": "My Space",
+    "conf_theme": "anyGivenTag"
+  },
+  "THRESHOLDS": {
+    "status": 14,
+    "vorhaben": 30,
+    "block": 180
+  }
+}
