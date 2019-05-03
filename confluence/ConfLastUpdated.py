@@ -7,7 +7,7 @@ def acquire_conf_connection(url, username=None, password=None):
     username = username if username is not None else getpass.getuser()
     password = password if password is not None else getpass.getpass(
         "Please insert your password >> "
-    )    
+    )
     return Confluence(
         url=url,
         username=username,
@@ -62,6 +62,10 @@ def get_conf_update_information(confluence, space, theme):
                     "status", "statusbericht", "bericht", "statusreport", "report"
                 ):
                     vals['is_status'] = True
+                if label['name'] in (
+                    "news", "neuigkeit", "update", "kommunikation"
+                ):
+                    vals['is_news'] = True
             if 'lastUpdated' in vals:
                 update_stats[page[0]] = vals
     return update_stats

@@ -202,21 +202,23 @@ class Application(tk.Frame):
         self.delete_table()
         for k, page in update_info.items():
             self.colA.insert("end", page['name'])
-            type = ''
+            type = []
             if 'is_block' in page.keys():
-                type = 'Block'
+                type.append('Block')
             if 'is_vorhaben' in page.keys():
-                type = 'Vorhaben'
+                type.append('Vorhaben')
             if 'is_status' in page.keys():
-                type = 'Status'
-            self.colB.insert("end", type)
+                type.append('Status')
+            if 'is_news' in page.keys():
+                type.append('News')
+            self.colB.insert("end", ', '.join(item for item in type))
             self.colC.insert("end", page['lastUpdated'])
-            if type == 'Status' and int(page['lastUpdated']) > self.status_threshold:
-                self.colC.itemconfig('end', background='red')
-            if type == 'Vorhaben' and int(page['lastUpdated']) > self.vorhaben_threshold:
-                self.colC.itemconfig('end', background='yellow')
-            if type == 'Block' and int(page['lastUpdated']) > self.block_threshold:
+            if 'Block' in type and int(page['lastUpdated']) > self.block_threshold:
                 self.colC.itemconfig('end', background='grey')
+            if 'Vorhaben' in type and int(page['lastUpdated']) > self.vorhaben_threshold:
+                self.colC.itemconfig('end', background='yellow')
+            if 'Status' in type and int(page['lastUpdated']) > self.status_threshold:
+                self.colC.itemconfig('end', background='red')
             self.colA.config(width=0)
             self.colB.config(width=0)
             self.colC.config(width=15)
@@ -233,6 +235,7 @@ class Application(tk.Frame):
     def connect_to_confluence(self):
         login = tk.Tk()
         login.lift()
+        login.attributes("-topmost", True)
         lf = LoginFrame(login)
         login.mainloop()
         connection = acquire_conf_connection(self.conf_url, username=lf.username, password=lf.password)
