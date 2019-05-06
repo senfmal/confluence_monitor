@@ -7,12 +7,12 @@ goto:eof
 
 :NOPYTHON
 echo No Python installation yet found on your system. Installing it now!
-.\python\python-3.7.3.exe /quiet InstallAllUsers=0 Include_launcher=0 Include_test=0 Include_pip=1
+.\python\python-3.7.3.exe /quiet InstallAllUsers=0 Include_launcher=0 Include_test=0 Include_pip=1 PrependPath=1
 echo Installing necessary modules...
-START python.exe -m pip install atlassian-python-api
+python.exe -m pip install atlassian-python-api
 
 :HASPYTHON
 echo Checking for necessary modules...
-START python.exe -m pip install atlassian-python-api
+python.exe -m pip install atlassian-python-api
 echo Running Confluence Monitor...
-CALL  python main.py
+python main.py
