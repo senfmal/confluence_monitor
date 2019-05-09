@@ -41,7 +41,7 @@ if __name__ == '__main__':
     root.title("Confluence Monitor v0.1")
 
     w = 600 # width for the Tk root
-    h = 200 # height for the Tk root
+    h = 500 # height for the Tk root
     # get screen width and height
     ws = root.winfo_screenwidth() # width of the screen
     hs = root.winfo_screenheight() # height of the screen
