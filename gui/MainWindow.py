@@ -24,38 +24,48 @@ class Application(tk.Frame):
         self.status_threshold = status_threshold
         self.vorhaben_threshold = vorhaben_threshold
         self.block_threshold = block_threshold
-        self.grid()
         self.create_widgets()
 
 
     def create_widgets(self):
-        self.hi_there = tk.Button(self)
-        self.hi_there["text"] = "Refresh data"
-        self.hi_there["command"] = self.display_conf_update_info
-        self.hi_there.grid(row=0, column=0, sticky=tk.W)
-
-        self.quit = tk.Button(self, text="QUIT", fg="red", command=self.master.destroy)
-        self.quit.grid(row=0, column=3, sticky=tk.E)
-
-        tk.Frame(self, height=5, bd=1, relief=tk.SUNKEN).grid(row=2, columnspan=4, sticky=tk.E+tk.W)
+        self.grid_configure(sticky="nsew")
+        self.master.grid_rowconfigure(0, weight=1)
+        self.master.grid_columnconfigure(0, weight=1)
+        self.menu = tk.Menu(self.master)
+        self.master.config(menu=self.menu)
+        self.nav_menu = tk.Menu(self.menu)
+        self.menu.add_cascade(label='Programm', menu=self.nav_menu)
+        self.nav_menu.add_command(label='Refresh data', command=self.display_conf_update_info, accelerator="Ctrl+R")
+        self.nav_menu.add_separator()
+        self.nav_menu.add_command(label='Quit', command=self.master.destroy, accelerator="Ctrl+Q")
 
         self.labelColA = tk.Label(self, text="Page", background='lightblue')
         self.labelColB = tk.Label(self, text="Type", background='lightblue')
         self.labelColC = tk.Label(self, text="Days w/o update", background='lightblue')
-        self.labelColA.grid(row=3, column=0, sticky=tk.E+tk.W)
-        self.labelColB.grid(row=3, column=1, sticky=tk.E+tk.W)
-        self.labelColC.grid(row=3, column=2, sticky=tk.E+tk.W)
+        self.labelColA.grid(row=0, column=0)
+        self.labelColB.grid(row=0, column=1)
+        self.labelColC.grid(row=0, column=2)
+        self.labelColA.grid_configure(sticky="ew")
+        self.labelColB.grid_configure(sticky="ew")
+        self.labelColC.grid_configure(sticky="ew")
 
         self.vsb = tk.Scrollbar(self, orient="vertical", command=self.OnVsb)
-        self.colA = tk.Listbox(self, yscrollcommand=self.vsb.set, exportselection=0)
-        self.colB = tk.Listbox(self, yscrollcommand=self.vsb.set, exportselection=0)
-        self.colC = tk.Listbox(self, yscrollcommand=self.vsb.set, exportselection=0)
+        self.colA = tk.Listbox(self, width=50, height=20, yscrollcommand=self.vsb.set, exportselection=0)
+        self.colB = tk.Listbox(self, width=50, height=20, yscrollcommand=self.vsb.set, exportselection=0)
+        self.colC = tk.Listbox(self, width=50, height=20, yscrollcommand=self.vsb.set, exportselection=0)
 
-        self.vsb.grid(column=3, sticky=tk.N+tk.S)
-        self.colA.grid(row=4, column=0)
-        self.colB.grid(row=4, column=1)
-        self.colC.grid(row=4, column=2)
+        self.vsb.grid(column=3)
+        self.colA.grid(row=1, column=0)
+        self.colB.grid(row=1, column=1)
+        self.colC.grid(row=1, column=2)
 
+        self.vsb.grid_configure(sticky="nsew")
+        self.colA.grid_configure(sticky="nsew")
+        self.colB.grid_configure(sticky="nsew")
+        self.colC.grid_configure(sticky="nsew")
+
+        self.master.bind('<Control-q>', lambda event: self.master.destroy())
+        self.master.bind('<Control-r>', lambda event: self.display_conf_update_info())
         self.colA.bind('<Up>', lambda event: self.scroll_listboxes(-1))
         self.colB.bind('<Up>', lambda event: self.scroll_listboxes(-1))
         self.colC.bind('<Up>', lambda event: self.scroll_listboxes(-1))
@@ -90,7 +100,11 @@ class Application(tk.Frame):
 
         self.display_conf_update_info()
 
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
         self.select_table_row(0)
+
 
     def select_table_row(self, index):
         self.colA.focus_set()
@@ -121,16 +135,12 @@ class Application(tk.Frame):
         w = event.widget
         try:
             index = int(w.curselection()[0])
-
             if index != int(self.colA.curselection()[0]):
                 self.colA.selection_clear(0, 'end')
-                #self.colA.select_set(index)
             if index != int(self.colB.curselection()[0]):
                 self.colB.selection_clear(0, 'end')
-                #self.colB.select_set(index)
             if index != int(self.colC.curselection()[0]):
                 self.colC.selection_clear(0, 'end')
-                #self.colC.select_set(index)
             self.select_table_row(index)
         except IndexError:
             return "break"
