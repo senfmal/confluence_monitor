@@ -1,9 +1,10 @@
 from confluence.ConfLastUpdated import acquire_conf_connection, get_conf_update_information
 from gui.LoginFrame import LoginFrame
+import pandas as pd
 try:
-    import Tkinter as tk ## Python 2.x
+    import Tkinter as tk
 except ImportError:
-    import tkinter as tk ## Python 3.x
+    import tkinter as tk
 
 class Application(tk.Frame):
     def __init__(
@@ -209,6 +210,8 @@ class Application(tk.Frame):
 
     def display_conf_update_info(self):
         update_info = get_conf_update_information(self.conf_connection, self.conf_space, self.conf_theme)
+        sorted_info = update_info.sort_values(['is_status', 'is_vorhaben', 'is_block'], ascending=[0,0,0])
+        print(list(sorted_info['name']))
         self.delete_table()
         for k, page in update_info.items():
             self.colA.insert("end", page['name'])

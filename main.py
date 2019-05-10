@@ -1,9 +1,9 @@
 import os, sys, json
 from gui import MainWindow as mw
 try:
-    import Tkinter as tk ## Python 2.x
+    import Tkinter as tk
 except ImportError:
-    import tkinter as tk ## Python 3.x
+    import tkinter as tk 
 
 if __name__ == '__main__':
     try:
