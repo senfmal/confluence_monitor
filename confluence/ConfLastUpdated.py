@@ -73,19 +73,20 @@ def depr_get_conf_update_information(confluence, space, theme):
 
 
 def get_conf_update_information(confluence, space, theme):
-    #update_stats = {}
     names = []
     lastUpdates = []
     blocks = []
     vorhabens = []
     status = []
     news = []
+    inactive = []
 
     for page in get_conf_pages_ids(confluence, space):
         is_block = False
         is_vorhaben = False
         is_status = False
         is_news = False
+        is_inactive = False
         name = None
         last_updated = -1
         if confluence.page_exists(space, page[1]):
@@ -120,6 +121,12 @@ def get_conf_update_information(confluence, space, theme):
                     "news", "neuigkeit", "update", "kommunikation"
                 ):
                     is_news = True
+                if label['name'] in (
+                    "beendet", "inaktiv", "closed", "onhold", "pending",
+                    "notstarted", "nichtgestartet", "nochnichtgestarted",
+                    "notstartedyet", "geschlossen", "planned", "geplant"
+                ):
+                    is_inactive = True
             if name is not None:
                 names.append(name)
                 lastUpdates.append(last_updated)
@@ -127,11 +134,13 @@ def get_conf_update_information(confluence, space, theme):
                 vorhabens.append(is_vorhaben)
                 status.append(is_status)
                 news.append(is_news)
+                inactive.append(is_inactive)
     return pd.DataFrame(data={
         'name': names,
         'last_updated': lastUpdates,
         'is_block': blocks,
         'is_vorhaben': vorhabens,
         'is_status': status,
-        'is_news': news
+        'is_news': news,
+        'is_inactive': inactive
     })
