@@ -26,6 +26,7 @@ class Application(tk.Frame):
         self.vorhaben_threshold = vorhaben_threshold
         self.block_threshold = block_threshold
         self.update_info = None
+        self.search_terms = None
         self.var_filter_untagged = tk.IntVar(value=0)
         self.var_filter_block = tk.IntVar(value=0)
         self.var_filter_vorhaben = tk.IntVar(value=1)
@@ -51,7 +52,7 @@ class Application(tk.Frame):
         self.search_frame.grid(row=0, column=0, columnspan=5)
         self.search_frame.grid_configure(sticky='nsew')
         self.label_search = tk.Label(self.search_frame, text="Suche:")
-        self.entry_search = tk.Entry(self.search_frame, width=125)
+        self.entry_search = tk.Entry(self.search_frame, width=100)
         self.btn_search = tk.Button(self.search_frame, text="Go", command=self.btn_search_clicked)
         self.label_search.grid(row=0, column=0)
         self.entry_search.grid(row=0, column=1, columnspan=3)
@@ -187,6 +188,8 @@ class Application(tk.Frame):
         self.colB.bind('<<ListboxSelect>>', self.OnSelectionChanged)
         self.colC.bind('<<ListboxSelect>>', self.OnSelectionChanged)
 
+        self.entry_search.bind('<Return>', self.OnEnterKeyPressed)
+
         self.display_conf_update_info()
 
         self.grid_rowconfigure(0, weight=1)
@@ -283,6 +286,10 @@ class Application(tk.Frame):
         return "break"
 
 
+    def OnEnterKeyPressed(self, event):
+        self.btn_search.invoke()
+
+
     def scroll_listboxes(self, yFactor):
         # function runs when a listbox has focus and the Up or Down arrow is pressed
         self.colA.yview_scroll(yFactor, "units")
@@ -317,7 +324,13 @@ class Application(tk.Frame):
         return type, bgcolor
 
 
-    def display_conf_update_info(self, update=True, sorting=['is_inactive','is_status', 'is_vorhaben', 'is_block', 'is_news'], ascending=[1,0,0,0,0]):
+    def display_conf_update_info(self,
+        search_terms = None,
+        update=True,
+        sorting=['is_inactive','is_status', 'is_vorhaben', 'is_block', 'is_news'],
+        ascending=[1,0,0,0,0]
+    ):
+        self.search_terms = search_terms if search_terms is not None else self.search_terms
         if update == True:
             self.update_info = get_conf_update_information(self.conf_connection, self.conf_space, self.conf_theme)
         filtered_info = []
@@ -343,7 +356,12 @@ class Application(tk.Frame):
                 (self.update_info['is_inactive']==False)])
         if self.var_filter_inactive.get() == 1:
             filtered_info.append(self.update_info[self.update_info['is_inactive']==True])
-        sorted_info = pd.concat(filtered_info).sort_values(sorting, ascending=ascending)
+        filtered_update = pd.concat(filtered_info)
+
+        if self.search_terms is not None:
+            for term in self.search_terms:
+                filtered_update = filtered_update[filtered_update['name'].str.contains(term)]
+        sorted_info = filtered_update.sort_values(sorting, ascending=ascending)
         self.delete_table()
         for item in list(sorted_info['name']):
             page = sorted_info[sorted_info['name']==item]
@@ -382,7 +400,7 @@ class Application(tk.Frame):
 
 
     def btn_search_clicked(self):
-        print("Click, click!!!")
+        self.display_conf_update_info(update=False, search_terms=self.entry_search.get().split())
 
 
     def cb_untagged(self):

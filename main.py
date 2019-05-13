@@ -3,7 +3,7 @@ from gui import MainWindow as mw
 try:
     import Tkinter as tk
 except ImportError:
-    import tkinter as tk 
+    import tkinter as tk
 
 if __name__ == '__main__':
     try:
@@ -46,8 +46,9 @@ if __name__ == '__main__':
     ws = root.winfo_screenwidth() # width of the screen
     hs = root.winfo_screenheight() # height of the screen
     # calculate x and y coordinates for the Tk root window
-    x = (ws/2) - (w/2)
-    y = (hs/2) - (h/2)
+    dimensioner = 3
+    x = (ws/dimensioner) - (w/dimensioner)
+    y = (hs/dimensioner) - (h/dimensioner)
     # set the dimensions of the screen
     # and where it is placed
     root.geometry('%dx%d+%d+%d' % (w, h, x, y))
