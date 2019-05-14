@@ -25,6 +25,11 @@ class Application(tk.Frame):
         self.status_threshold = status_threshold
         self.vorhaben_threshold = vorhaben_threshold
         self.block_threshold = block_threshold
+        self.config_environ()
+        self.create_widgets()
+
+
+    def config_environ(self):
         self.update_info = None
         self.search_terms = None
         self.var_filter_untagged = tk.IntVar(value=0)
@@ -33,13 +38,30 @@ class Application(tk.Frame):
         self.var_filter_status = tk.IntVar(value=1)
         self.var_filter_news = tk.IntVar(value=0)
         self.var_filter_inactive = tk.IntVar(value=0)
-        self.create_widgets()
 
 
     def create_widgets(self):
         self.grid_configure(sticky="nsew")
         self.master.grid_rowconfigure(0, weight=1)
         self.master.grid_columnconfigure(0, weight=1)
+
+        self.build_menu()
+        self.build_search()
+        self.add_separator(**{'row': 1, 'columnspan': 5, 'sticky': 'ew'})
+        self.build_filter()
+        self.add_separator(**{'row': 3, 'columnspan': 5, 'sticky': 'ew'})
+        self.build_table()
+        self.attach_bindings()
+
+        self.display_conf_update_info()
+
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
+        self.select_table_row(0)
+
+
+    def build_menu(self):
         self.menu = tk.Menu(self.master)
         self.master.config(menu=self.menu)
         self.nav_menu = tk.Menu(self.menu)
@@ -48,6 +70,8 @@ class Application(tk.Frame):
         self.nav_menu.add_separator()
         self.nav_menu.add_command(label='Quit', command=self.master.destroy, accelerator="Ctrl+Q")
 
+
+    def build_search(self):
         self.search_frame = tk.Frame(self)
         self.search_frame.grid(row=0, column=0, columnspan=5)
         self.search_frame.grid_configure(sticky='nsew')
@@ -61,15 +85,18 @@ class Application(tk.Frame):
         self.entry_search.grid_configure(sticky="ew")
         self.btn_search.grid_configure(sticky="e")
 
-        self.sep1 = tk.Frame(self, height=5, bd=1, relief=tk.SUNKEN)
-        self.sep1.grid(row=1, columnspan=5)
-        self.sep1.grid_configure(sticky="ew")
 
+    def add_separator(self, parent=None, **kwargs):
+        parent = self if parent is None else parent
+        tk.Frame(parent, height=5, bd=1, relief=tk.SUNKEN).grid(kwargs)
+
+
+    def build_filter(self):
         self.filter_frame = tk.Frame(self)
         self.filter_frame.grid(row=2, column=0, columnspan=6)
         self.filter_frame.grid_configure(sticky='nsew')
         self.filter_label = tk.Label(self.filter_frame, text='Filter nach:')
-        self.sep2 = tk.Frame(self.filter_frame, height=5, bd=1, relief=tk.SUNKEN)
+        self.add_separator(parent=self.filter_frame, **{'row':1, 'column':0, 'columnspan':6, 'sticky': 'ew'})
         self.filter_untagged = tk.Checkbutton(
             self.filter_frame,
             text="ohne Label",
@@ -107,7 +134,6 @@ class Application(tk.Frame):
             command=self.cb_inactive
         )
         self.filter_label.grid(row=0, column=0, columnspan=6)
-        self.sep2.grid(row=1, column=0, columnspan=6)
         self.filter_untagged.grid(row=2, column=0)
         self.filter_block.grid(row=2, column=1)
         self.filter_vorhaben.grid(row=2, column=2)
@@ -121,12 +147,9 @@ class Application(tk.Frame):
         self.filter_status.grid_configure(sticky='nsew')
         self.filter_news.grid_configure(sticky='nsew')
         self.filter_inactive.grid_configure(sticky='nsew')
-        self.sep2.grid_configure(sticky="ew")
 
-        self.sep3 = tk.Frame(self, height=5, bd=1, relief=tk.SUNKEN)
-        self.sep3.grid(row=3, columnspan=5)
-        self.sep3.grid_configure(sticky="ew")
 
+    def build_table(self):
         self.table_frame = tk.Frame(self)
         self.table_frame.grid(row=4, column=0, columnspan=5)
         self.table_frame.grid_configure(sticky="nsew")
@@ -154,6 +177,8 @@ class Application(tk.Frame):
         self.colB.grid_configure(sticky="nsew")
         self.colC.grid_configure(sticky="nsew")
 
+
+    def attach_bindings(self):
         self.master.bind('<Control-q>', lambda event: self.master.destroy())
         self.master.bind('<Control-r>', lambda event: self.display_conf_update_info())
         self.colA.bind('<Up>', lambda event: self.scroll_listboxes(-1))
@@ -189,13 +214,6 @@ class Application(tk.Frame):
         self.colC.bind('<<ListboxSelect>>', self.OnSelectionChanged)
 
         self.entry_search.bind('<Return>', self.OnEnterKeyPressed)
-
-        self.display_conf_update_info()
-
-        self.grid_rowconfigure(0, weight=1)
-        self.grid_columnconfigure(0, weight=1)
-
-        self.select_table_row(0)
 
 
     def select_table_row(self, index):
@@ -356,30 +374,32 @@ class Application(tk.Frame):
                 (self.update_info['is_inactive']==False)])
         if self.var_filter_inactive.get() == 1:
             filtered_info.append(self.update_info[self.update_info['is_inactive']==True])
-        filtered_update = pd.concat(filtered_info)
-
-        if self.search_terms is not None:
-            for term in self.search_terms:
-                filtered_update = filtered_update[filtered_update['name'].str.contains(term)]
-        sorted_info = filtered_update.sort_values(sorting, ascending=ascending)
-        self.delete_table()
-        for item in list(sorted_info['name']):
-            page = sorted_info[sorted_info['name']==item]
-            self.colA.insert("end", item)
-            type, bgcolor = self.get_Type(page)
-            self.colB.insert("end", ', '.join(item for item in type))
-            self.colC.insert("end", page.iloc[0]['last_updated'])
-            if not page.iloc[0]['is_inactive']:
-                self.colC.itemconfig('end', background=bgcolor)
-            else:
-                self.colA.itemconfig('end', foreground='gray')
-                self.colB.itemconfig('end', foreground='gray')
-                self.colC.itemconfig('end', foreground='gray')
-            self.colA.config(width=0)
-            self.colB.config(width=0)
-            self.colC.config(width=15)
-            self.winfo_toplevel().wm_geometry("")
-        self.select_table_row(0)
+        if filtered_info:
+            filtered_update = pd.concat(filtered_info)
+            if self.search_terms is not None:
+                for term in self.search_terms:
+                    filtered_update = filtered_update[filtered_update['name'].str.contains(term)]
+            sorted_info = filtered_update.sort_values(sorting, ascending=ascending)
+            self.delete_table()
+            for item in list(sorted_info['name']):
+                page = sorted_info[sorted_info['name']==item]
+                self.colA.insert("end", item)
+                type, bgcolor = self.get_Type(page)
+                self.colB.insert("end", ', '.join(item for item in type))
+                self.colC.insert("end", page.iloc[0]['last_updated'])
+                if not page.iloc[0]['is_inactive']:
+                    self.colC.itemconfig('end', background=bgcolor)
+                else:
+                    self.colA.itemconfig('end', foreground='gray')
+                    self.colB.itemconfig('end', foreground='gray')
+                    self.colC.itemconfig('end', foreground='gray')
+                self.colA.config(width=0)
+                self.colB.config(width=0)
+                self.colC.config(width=15)
+                self.winfo_toplevel().wm_geometry("")
+            self.select_table_row(0)
+        else:
+            self.delete_table()        
 
 
     def delete_table(self):
