@@ -107,6 +107,7 @@ def get_conf_update_information(confluence, space, theme):
                         ),
                         '%Y-%m-%dT%H:%M:%S.%f%z'
                         ).replace(tzinfo=None)).days
+                    last_updated = 0 if last_updated < 0 else last_updated
                 if label['name'] == "block":
                     is_block = True
                 if label['name'] in (
