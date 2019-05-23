@@ -12,9 +12,8 @@ class Application(tk.Frame):
         conf_url='http://localhost:8080',
         conf_space=None,
         conf_theme=None,
-        status_threshold=360,
-        vorhaben_threshold=360,
-        block_threshold=360
+        conf_categories={},
+        thresholds={}
     ):
         super().__init__(master)
         self.master = master
@@ -22,9 +21,8 @@ class Application(tk.Frame):
         self.conf_connection = self.connect_to_confluence()
         self.conf_space = conf_space
         self.conf_theme = conf_theme
-        self.status_threshold = status_threshold
-        self.vorhaben_threshold = vorhaben_threshold
-        self.block_threshold = block_threshold
+        self.conf_categories = conf_categories
+        self.thresholds = thresholds
         self.config_environ()
         self.create_widgets()
 
@@ -32,12 +30,9 @@ class Application(tk.Frame):
     def config_environ(self):
         self.update_info = None
         self.search_terms = None
-        self.var_filter_untagged = tk.IntVar(value=0)
-        self.var_filter_block = tk.IntVar(value=0)
-        self.var_filter_vorhaben = tk.IntVar(value=1)
-        self.var_filter_status = tk.IntVar(value=1)
-        self.var_filter_news = tk.IntVar(value=0)
-        self.var_filter_inactive = tk.IntVar(value=0)
+        self.var_filters = {}
+        for category in self.conf_categories.keys():
+            self.var_filters[category] = tk.IntVar(value=1)
 
 
     def create_widgets(self):
@@ -93,89 +88,45 @@ class Application(tk.Frame):
 
     def build_filter(self):
         self.filter_frame = tk.Frame(self)
-        self.filter_frame.grid(row=2, column=0, columnspan=6)
-        self.filter_frame.grid_configure(sticky='nsew')
+        self.filter_buttons = []
+        for key in self.conf_categories.keys():
+            self.filter_buttons.append(
+                tk.Checkbutton(
+                    self.filter_frame,
+                    text=key,
+                    variable=self.var_filters[key],
+                    command=cb_clicked
+                )
+            )
+        self.filter_frame.grid(row=2, column=0, columnspan=len(self.filter_buttons), sticky='nsew')
         self.filter_label = tk.Label(self.filter_frame, text='Filter nach:')
-        self.add_separator(parent=self.filter_frame, **{'row':1, 'column':0, 'columnspan':6, 'sticky': 'ew'})
-        self.filter_untagged = tk.Checkbutton(
-            self.filter_frame,
-            text="ohne Label",
-            variable=self.var_filter_untagged,
-            command=self.cb_untagged
-        )
-        self.filter_block = tk.Checkbutton(
-            self.filter_frame,
-            text="Vorhabenblock",
-            variable=self.var_filter_block,
-            command=self.cb_block
-        )
-        self.filter_vorhaben = tk.Checkbutton(
-            self.filter_frame,
-            text="Vorhaben",
-            variable=self.var_filter_vorhaben,
-            command=self.cb_vorhaben
-        )
-        self.filter_status = tk.Checkbutton(
-            self.filter_frame,
-            text="Statusbericht",
-            variable=self.var_filter_status,
-            command=self.cb_status
-        )
-        self.filter_news = tk.Checkbutton(
-            self.filter_frame,
-            text="News",
-            variable=self.var_filter_news,
-            command=self.cb_news
-        )
-        self.filter_inactive = tk.Checkbutton(
-            self.filter_frame,
-            text="inaktiv",
-            variable=self.var_filter_inactive,
-            command=self.cb_inactive
-        )
-        self.filter_label.grid(row=0, column=0, columnspan=6)
-        self.filter_untagged.grid(row=2, column=0)
-        self.filter_block.grid(row=2, column=1)
-        self.filter_vorhaben.grid(row=2, column=2)
-        self.filter_status.grid(row=2, column=3)
-        self.filter_news.grid(row=2, column=4)
-        self.filter_inactive.grid(row=2, column=5)
-        self.filter_label.grid_configure(sticky='ew')
-        self.filter_untagged.grid_configure(sticky='nsew')
-        self.filter_block.grid_configure(sticky='nsew')
-        self.filter_vorhaben.grid_configure(sticky='nsew')
-        self.filter_status.grid_configure(sticky='nsew')
-        self.filter_news.grid_configure(sticky='nsew')
-        self.filter_inactive.grid_configure(sticky='nsew')
+        self.add_separator(parent=self.filter_frame, **{'row':1, 'column':0, 'columnspan':len(self.filter_buttons), 'sticky': 'ew'})
+        self.filter_label.grid(row=0, column=0, columnspan=len(self.filter_buttons), sticky='ew')
+        col = 0
+        for btn in self.filter_buttons:
+            btn.grid(row=2, column=col, sticky='nsew')
+            col += 1
 
 
     def build_table(self):
         self.table_frame = tk.Frame(self)
-        self.table_frame.grid(row=4, column=0, columnspan=5)
-        self.table_frame.grid_configure(sticky="nsew")
+        self.table_frame.grid(row=4, column=0, columnspan=5, sticky="nsew")
         self.labelColA = tk.Label(self.table_frame, text="Page", background='lightblue')
         self.labelColB = tk.Label(self.table_frame, text="Type", background='lightblue')
         self.labelColC = tk.Label(self.table_frame, text="Days w/o update", background='lightblue')
-        self.labelColA.grid(row=0, column=0)
-        self.labelColB.grid(row=0, column=1)
-        self.labelColC.grid(row=0, column=2)
-        self.labelColA.grid_configure(sticky="ew")
-        self.labelColB.grid_configure(sticky="ew")
-        self.labelColC.grid_configure(sticky="ew")
+        self.labelColA.grid(row=0, column=0, sticky="ew")
+        self.labelColB.grid(row=0, column=1, sticky="ew")
+        self.labelColC.grid(row=0, column=2, sticky="ew")
 
         self.vsb = tk.Scrollbar(self.table_frame, orient="vertical", command=self.OnVsb, takefocus=tk.NO)
         self.colA = tk.Listbox(self.table_frame, width=50, height=20, yscrollcommand=self.vsb.set, exportselection=0)
         self.colB = tk.Listbox(self.table_frame, width=50, height=20, yscrollcommand=self.vsb.set, exportselection=0)
         self.colC = tk.Listbox(self.table_frame, width=50, height=20, yscrollcommand=self.vsb.set, exportselection=0)
 
-        self.vsb.grid(column=3)
-        self.colA.grid(row=1, column=0)
-        self.colB.grid(row=1, column=1)
-        self.colC.grid(row=1, column=2)
-        self.vsb.grid_configure(sticky="nsew")
-        self.colA.grid_configure(sticky="nsew")
-        self.colB.grid_configure(sticky="nsew")
-        self.colC.grid_configure(sticky="nsew")
+        self.vsb.grid(column=3, sticky="nsew")
+        self.colA.grid(row=1, column=0, sticky="nsew")
+        self.colB.grid(row=1, column=1, sticky="nsew")
+        self.colC.grid(row=1, column=2, sticky="nsew")
 
 
     def attach_bindings(self):
@@ -323,22 +274,14 @@ class Application(tk.Frame):
 
     def get_Type(self, page):
         type = []
-        if page.iloc[0]['is_block']:
-            type.append('Block')
-        if page.iloc[0]['is_vorhaben']:
-            type.append('Vorhaben')
-        if page.iloc[0]['is_status']:
-            type.append('Status')
-        if page.iloc[0]['is_news']:
-            type.append('News')
-        if page.iloc[0]['is_block'] and int(page.iloc[0]['last_updated']) > self.block_threshold:
-            bgcolor = 'grey'
-        elif page.iloc[0]['is_vorhaben'] and int(page.iloc[0]['last_updated']) > self.vorhaben_threshold:
-            bgcolor = 'yellow'
-        elif page.iloc[0]['is_status'] and int(page.iloc[0]['last_updated']) > self.status_threshold:
-            bgcolor = 'red'
-        else:
-            bgcolor = self['bg']
+        for category in self.conf_categories.keys():
+            if page.iloc[0][category]:
+                type.append(category)
+        for threshold in self.thresholds.keys():
+            if page.iloc[0][threshold] and int(page.iloc[0]['last_updated']) > threshold['limit']:
+                bgcolor = threshold['bgcolor']
+            else:
+                bgcolor = self['bg']
         return type, bgcolor
 
 
@@ -350,7 +293,12 @@ class Application(tk.Frame):
     ):
         self.search_terms = search_terms if search_terms is not None else self.search_terms
         if update == True:
-            self.update_info = get_conf_update_information(self.conf_connection, self.conf_space, self.conf_theme)
+            self.update_info = get_conf_update_information(
+                self.conf_connection,
+                self.conf_space,
+                self.conf_theme,
+                self.conf_categories
+            )
         filtered_info = []
         if self.var_filter_untagged.get() == 1:
             filtered_info.append(self.update_info[(self.update_info['is_status']==False) &
@@ -399,7 +347,7 @@ class Application(tk.Frame):
                 self.winfo_toplevel().wm_geometry("")
             self.select_table_row(0)
         else:
-            self.delete_table()        
+            self.delete_table()
 
 
     def delete_table(self):
@@ -423,25 +371,5 @@ class Application(tk.Frame):
         self.display_conf_update_info(update=False, search_terms=self.entry_search.get().split())
 
 
-    def cb_untagged(self):
-        self.display_conf_update_info(update=False)
-
-
-    def cb_block(self):
-        self.display_conf_update_info(update=False)
-
-
-    def cb_vorhaben(self):
-        self.display_conf_update_info(update=False)
-
-
-    def cb_status(self):
-        self.display_conf_update_info(update=False)
-
-
-    def cb_news(self):
-        self.display_conf_update_info(update=False)
-
-
-    def cb_inactive(self):
+    def cb_clicked(self):
         self.display_conf_update_info(update=False)

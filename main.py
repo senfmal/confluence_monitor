@@ -23,6 +23,7 @@ if __name__ == '__main__':
                 status_threshold = config['THRESHOLDS']['status']
                 vorhaben_threshold = config['THRESHOLDS']['vorhaben']
                 block_threshold = config['THRESHOLDS']['block']
+                categories = config['CATEGORY']
         except BaseException as err:
         	msg = """You need to specify six parameters:
     1. url e.g. 'http://localhost:8080/'
@@ -57,6 +58,7 @@ if __name__ == '__main__':
         conf_url=url,
         conf_space=space,
         conf_theme=theme,
+        conf_categories=categories,
         status_threshold=status_threshold,
         vorhaben_threshold=vorhaben_threshold,
         block_threshold=block_threshold

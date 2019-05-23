@@ -31,21 +31,27 @@ def get_conf_pages_ids(confluence, space, start=0, limit=500):
     ] if pages is not None else []
 
 
-def get_conf_update_information(confluence, space, theme):
+def get_key_for_value_in_list(check_val, d):
+    for k, v in d.items():
+        if type(v) == 'list':
+            for value in v:
+                if value == check_val:
+                    return k
+        if v == check_val:
+            return k
+    return None
+
+
+def get_conf_update_information(confluence, space, theme, category_tag_map):
     names = []
     lastUpdates = []
-    blocks = []
-    vorhabens = []
-    status = []
-    news = []
-    inactive = []
+    cat_lists = {}
 
     for page in get_conf_pages_ids(confluence, space):
-        is_block = False
-        is_vorhaben = False
-        is_status = False
-        is_news = False
-        is_inactive = False
+        cat_check = {}
+        for category in category_tag_map.keys():
+            cat_check[category] = False
+            cat_lists[category] = []
         name = None
         last_updated = -1
         if confluence.page_exists(space, page[1]):
@@ -67,40 +73,12 @@ def get_conf_update_information(confluence, space, theme):
                         '%Y-%m-%dT%H:%M:%S.%f%z'
                         ).replace(tzinfo=None)).days
                     last_updated = 0 if last_updated < 0 else last_updated
-                if label['name'] == "block":
-                    is_block = True
-                if label['name'] in (
-                    "vorhaben", "projekt", "maßnahme", "project", "massnahme"
-                ):
-                    is_vorhaben = True
-                if label['name'] in (
-                    "status", "statusbericht", "bericht", "statusreport", "report"
-                ):
-                    is_status = True
-                if label['name'] in (
-                    "news", "neuigkeit", "update", "kommunikation"
-                ):
-                    is_news = True
-                if label['name'] in (
-                    "beendet", "inaktiv", "closed", "onhold", "pending",
-                    "notstarted", "nichtgestartet", "nochnichtgestarted",
-                    "notstartedyet", "geschlossen", "planned", "geplant"
-                ):
-                    is_inactive = True
+                cat_match = get_key_for_value_in_list(label['name'], category_tag_map)
+                if cat_match is not None:
+                    cat_check[cat_match] = True
             if name is not None:
                 names.append(name)
                 lastUpdates.append(last_updated)
-                blocks.append(is_block)
-                vorhabens.append(is_vorhaben)
-                status.append(is_status)
-                news.append(is_news)
-                inactive.append(is_inactive)
-    return pd.DataFrame(data={
-        'name': names,
-        'last_updated': lastUpdates,
-        'is_block': blocks,
-        'is_vorhaben': vorhabens,
-        'is_status': status,
-        'is_news': news,
-        'is_inactive': inactive
-    })
+                for category in category_tag_map.keys():
+                    cat_lists[category].append(cat_check[category])
+    return pd.DataFrame(data=cat_lists)
