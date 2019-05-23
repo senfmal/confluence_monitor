@@ -288,8 +288,8 @@ class Application(tk.Frame):
     def display_conf_update_info(self,
         search_terms = None,
         update=True,
-        sorting=['is_inactive','is_status', 'is_vorhaben', 'is_block', 'is_news'],
-        ascending=[1,0,0,0,0]
+        sorting=['is_inactive'],
+        ascending=[1]
     ):
         self.search_terms = search_terms if search_terms is not None else self.search_terms
         if update == True:
