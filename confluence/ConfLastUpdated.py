@@ -17,11 +17,16 @@ def acquire_conf_connection(url, username=None, password=None):
 
 
 def get_information_from_content(source, knot, child):
-    for k, v in source.items():
-        if k == knot:
-            return get_information_from_content(v, knot, child)
-        if k == child:
-            return v
+    try:
+        for k, v in source.items():
+            if k == knot:
+                return get_information_from_content(v, knot, child)
+            if k == child:
+                return v
+    except AttributeError as ae:
+        print(source, knot, child)
+        print(ae)
+        return None
 
 
 def get_conf_pages_ids(confluence, space, start=0, limit=500):
@@ -61,6 +66,7 @@ def get_conf_update_information(confluence, space, theme, category_tag_map):
             for label in labels['results']:
                 if label['name'] == theme:
                     name = page[1]
+                    print(name, page[0])
                     last_updated = (datetime.now() - datetime.strptime(
                         get_information_from_content(
                             confluence.get_page_by_id(

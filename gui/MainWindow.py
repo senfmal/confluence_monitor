@@ -68,17 +68,13 @@ class Application(tk.Frame):
 
     def build_search(self):
         self.search_frame = tk.Frame(self)
-        self.search_frame.grid(row=0, column=0, columnspan=5)
-        self.search_frame.grid_configure(sticky='nsew')
+        self.search_frame.grid(row=0, column=0, columnspan=5, sticky='nsew')
         self.label_search = tk.Label(self.search_frame, text="Suche:")
         self.entry_search = tk.Entry(self.search_frame, width=100)
         self.btn_search = tk.Button(self.search_frame, text="Go", command=self.btn_search_clicked)
-        self.label_search.grid(row=0, column=0)
-        self.entry_search.grid(row=0, column=1, columnspan=3)
-        self.btn_search.grid(row=0, column=4)
-        self.label_search.grid_configure(sticky="w")
-        self.entry_search.grid_configure(sticky="ew")
-        self.btn_search.grid_configure(sticky="e")
+        self.label_search.grid(row=0, column=0, sticky='w')
+        self.entry_search.grid(row=0, column=1, columnspan=3, sticky='ew')
+        self.btn_search.grid(row=0, column=4, sticky='e')
 
 
     def add_separator(self, parent=None, **kwargs):
@@ -95,7 +91,7 @@ class Application(tk.Frame):
                     self.filter_frame,
                     text=key,
                     variable=self.var_filters[key],
-                    command=cb_clicked
+                    command=self.cb_clicked
                 )
             )
         self.filter_frame.grid(row=2, column=0, columnspan=len(self.filter_buttons), sticky='nsew')
@@ -288,7 +284,7 @@ class Application(tk.Frame):
     def display_conf_update_info(self,
         search_terms = None,
         update=True,
-        sorting=['is_inactive'],
+        sorting=['inactive'],
         ascending=[1]
     ):
         self.search_terms = search_terms if search_terms is not None else self.search_terms
@@ -300,28 +296,14 @@ class Application(tk.Frame):
                 self.conf_categories
             )
         filtered_info = []
-        if self.var_filter_untagged.get() == 1:
-            filtered_info.append(self.update_info[(self.update_info['is_status']==False) &
-                (self.update_info['is_vorhaben']==False) &
-                (self.update_info['is_block']==False) &
-                (self.update_info['is_news']==False)
+        for category in self.conf_categories.keys():
+            if self.var_filters[category].get() == 1:
+                filtered.append(self.update_info[(self.update_info[category]==True) &
+                    (self.update_info['inactive']==False)
             ])
-        if self.var_filter_news.get() == 1:
-            filtered_info.append(self.update_info[(self.update_info['is_news']==True) &
-                (self.update_info['is_inactive']==False)
-            ])
-        if self.var_filter_status.get() == 1:
-            filtered_info.append(self.update_info[(self.update_info['is_status']==True) &
-                (self.update_info['is_inactive']==False)
-            ])
-        if self.var_filter_vorhaben.get() == 1:
-            filtered_info.append(self.update_info[(self.update_info['is_vorhaben']==True) &
-                (self.update_info['is_inactive']==False)])
-        if self.var_filter_block.get() == 1:
-            filtered_info.append(self.update_info[(self.update_info['is_block']==True) &
-                (self.update_info['is_inactive']==False)])
-        if self.var_filter_inactive.get() == 1:
-            filtered_info.append(self.update_info[self.update_info['is_inactive']==True])
+            if category == 'inactive':
+                if self.var_filters[category].get() == 1:
+                    filtered_info.append(self.update_info[self.update_info[category]==True])
         if filtered_info:
             filtered_update = pd.concat(filtered_info)
             if self.search_terms is not None:
@@ -335,7 +317,7 @@ class Application(tk.Frame):
                 type, bgcolor = self.get_Type(page)
                 self.colB.insert("end", ', '.join(item for item in type))
                 self.colC.insert("end", page.iloc[0]['last_updated'])
-                if not page.iloc[0]['is_inactive']:
+                if not page.iloc[0]['inactive']:
                     self.colC.itemconfig('end', background=bgcolor)
                 else:
                     self.colA.itemconfig('end', foreground='gray')
