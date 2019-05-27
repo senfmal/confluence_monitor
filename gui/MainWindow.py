@@ -269,16 +269,15 @@ class Application(tk.Frame):
 
 
     def get_Type(self, page):
-        type = []
+        cat_type = []
+        bgcolor = self['bg']
         for category in self.conf_categories.keys():
             if page.iloc[0][category]:
-                type.append(category)
+                cat_type.append(category)
         for threshold in self.thresholds.keys():
-            if page.iloc[0][threshold] and int(page.iloc[0]['last_updated']) > threshold['limit']:
-                bgcolor = threshold['bgcolor']
-            else:
-                bgcolor = self['bg']
-        return type, bgcolor
+            if page.iloc[0][threshold] and int(page.iloc[0]['last_updated']) > self.thresholds[threshold]['limit']:
+                bgcolor = self.thresholds[threshold]['bgcolor']
+        return cat_type, bgcolor
 
 
     def display_conf_update_info(self,
@@ -298,7 +297,7 @@ class Application(tk.Frame):
         filtered_info = []
         for category in self.conf_categories.keys():
             if self.var_filters[category].get() == 1:
-                filtered.append(self.update_info[(self.update_info[category]==True) &
+                filtered_info.append(self.update_info[(self.update_info[category]==True) &
                     (self.update_info['inactive']==False)
             ])
             if category == 'inactive':
@@ -314,8 +313,8 @@ class Application(tk.Frame):
             for item in list(sorted_info['name']):
                 page = sorted_info[sorted_info['name']==item]
                 self.colA.insert("end", item)
-                type, bgcolor = self.get_Type(page)
-                self.colB.insert("end", ', '.join(item for item in type))
+                cat_type, bgcolor = self.get_Type(page)                
+                self.colB.insert("end", ', '.join(item for item in cat_type))
                 self.colC.insert("end", page.iloc[0]['last_updated'])
                 if not page.iloc[0]['inactive']:
                     self.colC.itemconfig('end', background=bgcolor)

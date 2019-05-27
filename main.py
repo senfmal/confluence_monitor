@@ -50,13 +50,7 @@ if __name__ == '__main__':
     y = (hs/dimensioner) - (h/dimensioner)
     # set the dimensions of the screen
     # and where it is placed
-    root.geometry('%dx%d+%d+%d' % (w, h, x, y))
-    # print("master={}".format(root))
-    # print("url={}".format(url))
-    # print("space={}".format(space))
-    # print("theme={}".format(theme))
-    # print("categories={}".format(categories))
-    # print("thresholds={}".format(thresholds))
+    root.geometry('%dx%d+%d+%d' % (w, h, x, y))    
     app = mw.Application(
         master=root,
         conf_url=url,

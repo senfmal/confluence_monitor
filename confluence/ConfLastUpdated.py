@@ -2,6 +2,7 @@ from datetime import datetime
 import getpass
 from atlassian import Confluence
 import pandas as pd
+import typing
 
 
 def acquire_conf_connection(url, username=None, password=None):
@@ -24,8 +25,7 @@ def get_information_from_content(source, knot, child):
             if k == child:
                 return v
     except AttributeError as ae:
-        print(source, knot, child)
-        print(ae)
+        print("Error in get_information_from_content: {}".format([source, knot, child]))
         return None
 
 
@@ -38,27 +38,28 @@ def get_conf_pages_ids(confluence, space, start=0, limit=500):
 
 def get_key_for_value_in_list(check_val, d):
     for k, v in d.items():
-        if type(v) == 'list':
+        if isinstance(v, typing.List) or isinstance(v, typing.Tuple):
             for value in v:
                 if value == check_val:
                     return k
-        if v == check_val:
+        elif v == check_val:
             return k
     return None
 
 
 def get_conf_update_information(confluence, space, theme, category_tag_map):
-    names = []
-    lastUpdates = []
     cat_lists = {}
-
+    cat_check = {}
+    cat_lists['name'] = []
+    cat_lists['last_updated'] = []
+    for category in category_tag_map.keys():
+        cat_check[category] = False
+        cat_lists[category] = []
     for page in get_conf_pages_ids(confluence, space):
-        cat_check = {}
-        for category in category_tag_map.keys():
-            cat_check[category] = False
-            cat_lists[category] = []
         name = None
         last_updated = -1
+        for category in category_tag_map.keys():
+            cat_check[category] = False
         if confluence.page_exists(space, page[1]):
             labels = confluence.get_page_labels(
                 page[0], prefix=None, start=None, limit=None
@@ -66,7 +67,6 @@ def get_conf_update_information(confluence, space, theme, category_tag_map):
             for label in labels['results']:
                 if label['name'] == theme:
                     name = page[1]
-                    print(name, page[0])
                     last_updated = (datetime.now() - datetime.strptime(
                         get_information_from_content(
                             confluence.get_page_by_id(
@@ -79,12 +79,13 @@ def get_conf_update_information(confluence, space, theme, category_tag_map):
                         '%Y-%m-%dT%H:%M:%S.%f%z'
                         ).replace(tzinfo=None)).days
                     last_updated = 0 if last_updated < 0 else last_updated
-                cat_match = get_key_for_value_in_list(label['name'], category_tag_map)
+                cat_match = get_key_for_value_in_list(label['name'], category_tag_map)                
                 if cat_match is not None:
                     cat_check[cat_match] = True
+                    cat_match = None
             if name is not None:
-                names.append(name)
-                lastUpdates.append(last_updated)
+                cat_lists['name'].append(name)
+                cat_lists['last_updated'].append(last_updated)
                 for category in category_tag_map.keys():
                     cat_lists[category].append(cat_check[category])
     return pd.DataFrame(data=cat_lists)
