@@ -2,6 +2,7 @@ from datetime import datetime
 import getpass
 from atlassian import Confluence
 import pandas as pd
+import typing
 
 
 def acquire_conf_connection(url, username=None, password=None):
@@ -17,11 +18,15 @@ def acquire_conf_connection(url, username=None, password=None):
 
 
 def get_information_from_content(source, knot, child):
-    for k, v in source.items():
-        if k == knot:
-            return get_information_from_content(v, knot, child)
-        if k == child:
-            return v
+    try:
+        for k, v in source.items():
+            if k == knot:
+                return get_information_from_content(v, knot, child)
+            if k == child:
+                return v
+    except AttributeError as ae:
+        print("Error in get_information_from_content: {}".format([source, knot, child]))
+        return None
 
 
 def get_conf_pages_ids(confluence, space, start=0, limit=500):
@@ -31,64 +36,30 @@ def get_conf_pages_ids(confluence, space, start=0, limit=500):
     ] if pages is not None else []
 
 
-def depr_get_conf_update_information(confluence, space, theme):
-    update_stats = {}
+def get_key_for_value_in_list(check_val, d):
+    for k, v in d.items():
+        if isinstance(v, typing.List) or isinstance(v, typing.Tuple):
+            for value in v:
+                if value == check_val:
+                    return k
+        elif v == check_val:
+            return k
+    return None
+
+
+def get_conf_update_information(confluence, space, theme, category_tag_map):
+    cat_lists = {}
+    cat_check = {}
+    cat_lists['name'] = []
+    cat_lists['last_updated'] = []
+    for category in category_tag_map.keys():
+        cat_check[category] = False
+        cat_lists[category] = []
     for page in get_conf_pages_ids(confluence, space):
-        if confluence.page_exists(space, page[1]):
-            labels = confluence.get_page_labels(
-                page[0], prefix=None, start=None, limit=None
-            )
-            vals = {}
-            vals['name'] = page[1]
-            for label in labels['results']:
-                if label['name'] == theme:
-                    vals['lastUpdated'] = (datetime.now() - datetime.strptime(
-                        get_information_from_content(
-                            confluence.get_page_by_id(
-                                page[0],
-                                expand='version'
-                            ),
-                            'version',
-                            'when'
-                        ),
-                        '%Y-%m-%dT%H:%M:%S.%f%z'
-                        ).replace(tzinfo=None)).days
-                if label['name'] == "block":
-                    vals['is_block'] = True
-                if label['name'] in (
-                    "vorhaben", "projekt", "maßnahme", "project", "massnahme"
-                ):
-                    vals['is_vorhaben'] = True
-                if label['name'] in (
-                    "status", "statusbericht", "bericht", "statusreport", "report"
-                ):
-                    vals['is_status'] = True
-                if label['name'] in (
-                    "news", "neuigkeit", "update", "kommunikation"
-                ):
-                    vals['is_news'] = True
-            if 'lastUpdated' in vals:
-                update_stats[page[0]] = vals
-    return update_stats
-
-
-def get_conf_update_information(confluence, space, theme):
-    names = []
-    lastUpdates = []
-    blocks = []
-    vorhabens = []
-    status = []
-    news = []
-    inactive = []
-
-    for page in get_conf_pages_ids(confluence, space):
-        is_block = False
-        is_vorhaben = False
-        is_status = False
-        is_news = False
-        is_inactive = False
         name = None
         last_updated = -1
+        for category in category_tag_map.keys():
+            cat_check[category] = False
         if confluence.page_exists(space, page[1]):
             labels = confluence.get_page_labels(
                 page[0], prefix=None, start=None, limit=None
@@ -108,40 +79,13 @@ def get_conf_update_information(confluence, space, theme):
                         '%Y-%m-%dT%H:%M:%S.%f%z'
                         ).replace(tzinfo=None)).days
                     last_updated = 0 if last_updated < 0 else last_updated
-                if label['name'] == "block":
-                    is_block = True
-                if label['name'] in (
-                    "vorhaben", "projekt", "maßnahme", "project", "massnahme"
-                ):
-                    is_vorhaben = True
-                if label['name'] in (
-                    "status", "statusbericht", "bericht", "statusreport", "report"
-                ):
-                    is_status = True
-                if label['name'] in (
-                    "news", "neuigkeit", "update", "kommunikation"
-                ):
-                    is_news = True
-                if label['name'] in (
-                    "beendet", "inaktiv", "closed", "onhold", "pending",
-                    "notstarted", "nichtgestartet", "nochnichtgestarted",
-                    "notstartedyet", "geschlossen", "planned", "geplant"
-                ):
-                    is_inactive = True
+                cat_match = get_key_for_value_in_list(label['name'], category_tag_map)                
+                if cat_match is not None:
+                    cat_check[cat_match] = True
+                    cat_match = None
             if name is not None:
-                names.append(name)
-                lastUpdates.append(last_updated)
-                blocks.append(is_block)
-                vorhabens.append(is_vorhaben)
-                status.append(is_status)
-                news.append(is_news)
-                inactive.append(is_inactive)
-    return pd.DataFrame(data={
-        'name': names,
-        'last_updated': lastUpdates,
-        'is_block': blocks,
-        'is_vorhaben': vorhabens,
-        'is_status': status,
-        'is_news': news,
-        'is_inactive': inactive
-    })
+                cat_lists['name'].append(name)
+                cat_lists['last_updated'].append(last_updated)
+                for category in category_tag_map.keys():
+                    cat_lists[category].append(cat_check[category])
+    return pd.DataFrame(data=cat_lists)

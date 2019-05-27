@@ -20,9 +20,8 @@ if __name__ == '__main__':
                 url = config['CONNECT']['conf_url']
                 space = config['CONNECT']['conf_space']
                 theme = config['CONNECT']['conf_theme']
-                status_threshold = config['THRESHOLDS']['status']
-                vorhaben_threshold = config['THRESHOLDS']['vorhaben']
-                block_threshold = config['THRESHOLDS']['block']
+                thresholds = config['THRESHOLDS']
+                categories = config['CATEGORY']
         except BaseException as err:
         	msg = """You need to specify six parameters:
     1. url e.g. 'http://localhost:8080/'
@@ -51,14 +50,13 @@ if __name__ == '__main__':
     y = (hs/dimensioner) - (h/dimensioner)
     # set the dimensions of the screen
     # and where it is placed
-    root.geometry('%dx%d+%d+%d' % (w, h, x, y))
+    root.geometry('%dx%d+%d+%d' % (w, h, x, y))    
     app = mw.Application(
         master=root,
         conf_url=url,
         conf_space=space,
         conf_theme=theme,
-        status_threshold=status_threshold,
-        vorhaben_threshold=vorhaben_threshold,
-        block_threshold=block_threshold
+        conf_categories=categories,
+        thresholds=thresholds
     )
     app.mainloop()
