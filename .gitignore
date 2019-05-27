@@ -4,3 +4,4 @@ config.json
 /Lib/
 /Scripts/
 *.cfg
+/Include/
