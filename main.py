@@ -6,6 +6,7 @@ except ImportError:
     import tkinter as tk
 
 if __name__ == '__main__':
+    vers_num = 0.5
     try:
         url, space, theme, status_threshold, vorhaben_threshold, block_threshold = sys.argv[1:]
     except ValueError as err:
@@ -37,7 +38,7 @@ if __name__ == '__main__':
         	sys.exit()
 
     root = tk.Tk()
-    root.title("Confluence Monitor v0.1")
+    root.title("Confluence Monitor v{}".format(vers_num))
 
     w = 600 # width for the Tk root
     h = 200 # height for the Tk root
@@ -50,7 +51,7 @@ if __name__ == '__main__':
     y = (hs/dimensioner) - (h/dimensioner)
     # set the dimensions of the screen
     # and where it is placed
-    root.geometry('%dx%d+%d+%d' % (w, h, x, y))    
+    root.geometry('%dx%d+%d+%d' % (w, h, x, y))
     app = mw.Application(
         master=root,
         conf_url=url,

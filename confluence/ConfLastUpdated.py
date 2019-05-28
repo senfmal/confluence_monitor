@@ -67,19 +67,26 @@ def get_conf_update_information(confluence, space, theme, category_tag_map):
             for label in labels['results']:
                 if label['name'] == theme:
                     name = page[1]
-                    last_updated = (datetime.now() - datetime.strptime(
-                        get_information_from_content(
-                            confluence.get_page_by_id(
-                                page[0],
-                                expand='version'
+                    try:
+                        last_updated = (datetime.now() - datetime.strptime(
+                            get_information_from_content(
+                                confluence.get_page_by_id(
+                                    page[0],
+                                    expand='version'
+                                ),
+                                'version',
+                                'when'
                             ),
-                            'version',
-                            'when'
-                        ),
-                        '%Y-%m-%dT%H:%M:%S.%f%z'
-                        ).replace(tzinfo=None)).days
-                    last_updated = 0 if last_updated < 0 else last_updated
-                cat_match = get_key_for_value_in_list(label['name'], category_tag_map)                
+                            '%Y-%m-%dT%H:%M:%S.%f%z'
+                            ).replace(tzinfo=None)).days
+                    except TypeError as te:
+                        # fresh page without history
+                        # TODO: Creation date of the initial page needs to be used in such cases
+                        # TODO: Other scenario is a problem with the REST API history display, investigation needed
+                        last_updated = 0
+                    finally:
+                        last_updated = 0 if last_updated < 0 else last_updated
+                cat_match = get_key_for_value_in_list(label['name'], category_tag_map)
                 if cat_match is not None:
                     cat_check[cat_match] = True
                     cat_match = None
