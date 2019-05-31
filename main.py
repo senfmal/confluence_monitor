@@ -6,7 +6,7 @@ except ImportError:
     import tkinter as tk
 
 if __name__ == '__main__':
-    vers_num = 0.5
+    vers_num = 0.6
     try:
         url, space, theme, status_threshold, vorhaben_threshold, block_threshold = sys.argv[1:]
     except ValueError as err:
