@@ -12,6 +12,7 @@ def acquire_conf_connection(url, username=None, password=None):
     )
     return Confluence(
         url=url,
+        api_root='wiki/rest/api',
         username=username,
         password=password
     )
@@ -72,7 +73,7 @@ def get_conf_update_information(confluence, space, theme, category_tag_map):
                             get_information_from_content(
                                 confluence.get_page_by_id(
                                     page[0],
-                                    expand='version'
+                                    expand='history'
                                 ),
                                 'version',
                                 'when'
@@ -80,9 +81,6 @@ def get_conf_update_information(confluence, space, theme, category_tag_map):
                             '%Y-%m-%dT%H:%M:%S.%f%z'
                             ).replace(tzinfo=None)).days
                     except TypeError as te:
-                        # fresh page without history
-                        # TODO: Creation date of the initial page needs to be used in such cases
-                        # TODO: Other scenario is a problem with the REST API history display, investigation needed
                         last_updated = 0
                     finally:
                         last_updated = 0 if last_updated < 0 else last_updated
