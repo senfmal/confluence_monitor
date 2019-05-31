@@ -39,11 +39,11 @@ def get_conf_pages_ids(confluence, space, start=0, limit=500):
 
 def get_key_for_value_in_list(check_val, d):
     for k, v in d.items():
-        if isinstance(v, typing.List) or isinstance(v, typing.Tuple):
-            for value in v:
+        if isinstance(v['tags'], typing.List) or isinstance(v['tags'], typing.Tuple):
+            for value in v['tags']:
                 if value == check_val:
                     return k
-        elif v == check_val:
+        elif v['tags'] == check_val:
             return k
     return None
 

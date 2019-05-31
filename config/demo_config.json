@@ -5,7 +5,13 @@
     "conf_theme": "anyGivenTag"
   },
   "LABELS": {
-    "block": ["block"]
+    "block": {
+      "tags": ["block"],
+      "sorting": {
+        "priority": 0,
+        "asc": 0
+      }
+    }
   },
   "THRESHOLDS": {
     "block": {
