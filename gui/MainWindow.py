@@ -23,6 +23,7 @@ class Application(tk.Frame):
         self.conf_theme = conf_theme
         self.conf_categories = conf_categories
         self.thresholds = thresholds
+        self.sorting, self.ascending = self.get_sorting(self.conf_categories)
         self.config_environ()
         self.create_widgets()
 
@@ -308,12 +309,12 @@ class Application(tk.Frame):
             if self.search_terms is not None:
                 for term in self.search_terms:
                     filtered_update = filtered_update[filtered_update['name'].str.contains(term)]
-            sorted_info = filtered_update.sort_values(sorting, ascending=ascending)
+            sorted_info = filtered_update.sort_values(self.sorting, ascending=self.ascending)
             self.delete_table()
             for item in list(sorted_info['name']):
                 page = sorted_info[sorted_info['name']==item]
                 self.colA.insert("end", item)
-                cat_type, bgcolor = self.get_Type(page)                
+                cat_type, bgcolor = self.get_Type(page)
                 self.colB.insert("end", ', '.join(item for item in cat_type))
                 self.colC.insert("end", page.iloc[0]['last_updated'])
                 if not page.iloc[0]['inactive']:
@@ -346,6 +347,17 @@ class Application(tk.Frame):
         connection = acquire_conf_connection(self.conf_url, username=lf.username, password=lf.password)
         login.destroy()
         return connection
+
+
+    def get_sorting(self, categories):
+        sort_cat = []
+        ascending = []
+        for i in range(len(categories)):
+            for category, attributes in categories.items():
+                if attributes['sorting']['priority']==i and i > 0:
+                    sort_cat.append(category)
+                    ascending.append(attributes['sorting']['asc'])
+        return sort_cat, ascending
 
 
     def btn_search_clicked(self):
