@@ -18,18 +18,6 @@ def acquire_conf_connection(url, username=None, password=None):
     )
 
 
-def get_information_from_content(source, knot, child):
-    try:
-        for k, v in source.items():
-            if k == knot:
-                return get_information_from_content(v, knot, child)
-            if k == child:
-                return v
-    except AttributeError as ae:
-        print("Error in get_information_from_content: {}".format([source, knot, child]))
-        return None
-
-
 def get_conf_pages_ids(confluence, space, start=0, limit=500):
     pages = confluence.get_all_pages_from_space(space, start=start, limit=limit)
     return [
@@ -67,23 +55,21 @@ def get_conf_update_information(confluence, space, theme, category_tag_map):
             )
             for label in labels['results']:
                 if label['name'] == theme:
+                    last_updated_date = None
                     name = page[1]
-                    try:
+                    content = confluence.get_page_by_id(page[0], expand='history')
+                    last_updated_date = content['history']['_expandable']['lastUpdated']
+                    if content is None or len(last_updated_date) == 0:
+                        content = confluence.get_page_by_id(page[0], expand='version')
+                        last_updated_date = content['version']['when']
+                    if last_updated_date is not None:
                         last_updated = (datetime.now() - datetime.strptime(
-                            get_information_from_content(
-                                confluence.get_page_by_id(
-                                    page[0],
-                                    expand='history'
-                                ),
-                                'version',
-                                'when'
-                            ),
+                            last_updated_date,
                             '%Y-%m-%dT%H:%M:%S.%f%z'
                             ).replace(tzinfo=None)).days
-                    except TypeError as te:
+                    else:
                         last_updated = 0
-                    finally:
-                        last_updated = 0 if last_updated < 0 else last_updated
+                    last_updated = 0 if last_updated < 0 else last_updated
                 cat_match = get_key_for_value_in_list(label['name'], category_tag_map)
                 if cat_match is not None:
                     cat_check[cat_match] = True
