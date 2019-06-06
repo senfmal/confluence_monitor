@@ -45,6 +45,7 @@ def get_conf_update_information(confluence, space, theme, category_tag_map):
         cat_check[category] = False
         cat_lists[category] = []
     for page in get_conf_pages_ids(confluence, space):
+        cat_match_count = 0
         name = None
         last_updated = -1
         for category in category_tag_map.keys():
@@ -72,9 +73,12 @@ def get_conf_update_information(confluence, space, theme, category_tag_map):
                     last_updated = 0 if last_updated < 0 else last_updated
                 cat_match = get_key_for_value_in_list(label['name'], category_tag_map)
                 if cat_match is not None:
+                    cat_match_count += 1
                     cat_check[cat_match] = True
                     cat_match = None
             if name is not None:
+                if cat_match_count == 0:
+                    cat_check["untagged"] = True
                 cat_lists['name'].append(name)
                 cat_lists['last_updated'].append(last_updated)
                 for category in category_tag_map.keys():

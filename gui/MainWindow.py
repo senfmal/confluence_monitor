@@ -22,6 +22,14 @@ class Application(tk.Frame):
         self.conf_space = conf_space
         self.conf_theme = conf_theme
         self.conf_categories = conf_categories
+        if "untagged" not in self.conf_categories.keys():
+            self.conf_categories["untagged"] = {
+                "tags": [],
+                "sorting": {
+                    "priority": 0,
+                    "asc": 0
+                }
+            }
         self.thresholds = thresholds
         self.sorting, self.ascending = self.get_sorting(self.conf_categories)
         self.config_environ()
@@ -309,7 +317,11 @@ class Application(tk.Frame):
             if self.search_terms is not None:
                 for term in self.search_terms:
                     filtered_update = filtered_update[filtered_update['name'].str.contains(term)]
-            sorted_info = filtered_update.sort_values(self.sorting, ascending=self.ascending)
+            try:
+                sorted_info = filtered_update.sort_values(self.sorting, ascending=self.ascending)
+            except IndexError as ie:
+                print("{}".format('\n'.join(arg for arg in ie.args)))
+                sorted_info = filtered_update
             self.delete_table()
             for item in list(sorted_info['name']):
                 page = sorted_info[sorted_info['name']==item]
