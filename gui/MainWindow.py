@@ -137,6 +137,12 @@ class Application(tk.Frame):
     def attach_bindings(self):
         self.master.bind('<Control-q>', lambda event: self.master.destroy())
         self.master.bind('<Control-r>', lambda event: self.display_conf_update_info())
+        self.labelColA.bind('<Button-1>', lambda event: self.asc_sorting(self.colA))
+        self.labelColB.bind('<Button-1>', lambda event: self.asc_sorting(self.colB))
+        self.labelColC.bind('<Button-1>', lambda event: self.asc_sorting(self.colC))
+        self.labelColA.bind('<Button-1>', lambda event: self.desc_sorting(self.colA))
+        self.labelColB.bind('<Button-1>', lambda event: self.desc_sorting(self.colB))
+        self.labelColC.bind('<Button-1>', lambda event: self.desc_sorting(self.colC))
         self.colA.bind('<Up>', lambda event: self.scroll_listboxes(-1))
         self.colB.bind('<Up>', lambda event: self.scroll_listboxes(-1))
         self.colC.bind('<Up>', lambda event: self.scroll_listboxes(-1))
@@ -378,3 +384,11 @@ class Application(tk.Frame):
 
     def cb_clicked(self):
         self.display_conf_update_info(update=False)
+
+
+    def asc_sorting(self, column):
+        print("Single click on {}".format(column))
+
+
+    def desc_sorting(self, column):
+        print("Double click on {}".format(column))
