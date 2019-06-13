@@ -23,17 +23,24 @@ class Application(tk.Frame):
         self.conf_theme = conf_theme
         self.conf_categories = conf_categories
         if "untagged" not in self.conf_categories.keys():
-            self.conf_categories["untagged"] = {
+            self.sorting, self.ascending = self.change_sorting("untagged", {
                 "tags": [],
                 "sorting": {
                     "priority": 0,
                     "asc": 0
                 }
-            }
+            })
+        else:
+            self.sorting, self.ascending = self.change_sorting()
         self.thresholds = thresholds
-        self.sorting, self.ascending = self.get_sorting(self.conf_categories)
         self.config_environ()
         self.create_widgets()
+
+
+    def change_sorting(self, key=None, value=None):
+        if key is not None:
+            self.conf_categories[key] = value
+        return self.get_sorting(self.conf_categories)
 
 
     def config_environ(self):
@@ -137,12 +144,18 @@ class Application(tk.Frame):
     def attach_bindings(self):
         self.master.bind('<Control-q>', lambda event: self.master.destroy())
         self.master.bind('<Control-r>', lambda event: self.display_conf_update_info())
-        self.labelColA.bind('<Button-1>', lambda event: self.asc_sorting(self.colA))
-        self.labelColB.bind('<Button-1>', lambda event: self.asc_sorting(self.colB))
-        self.labelColC.bind('<Button-1>', lambda event: self.asc_sorting(self.colC))
-        self.labelColA.bind('<Button-1>', lambda event: self.desc_sorting(self.colA))
-        self.labelColB.bind('<Button-1>', lambda event: self.desc_sorting(self.colB))
-        self.labelColC.bind('<Button-1>', lambda event: self.desc_sorting(self.colC))
+        self.labelColA.bind('<Button-1>', lambda event: self.asc_sorting(
+            self.labelColA, "name", self.labelColC
+        ))
+        self.labelColC.bind('<Button-1>', lambda event: self.asc_sorting(
+            self.labelColC, "last_updated", self.labelColA
+        ))
+        self.labelColA.bind('<Button-3>', lambda event: self.desc_sorting(
+            self.labelColA, "name", self.labelColC
+        ))
+        self.labelColC.bind('<Button-3>', lambda event: self.desc_sorting(
+            self.labelColC, "last_updated", self.labelColA
+        ))
         self.colA.bind('<Up>', lambda event: self.scroll_listboxes(-1))
         self.colB.bind('<Up>', lambda event: self.scroll_listboxes(-1))
         self.colC.bind('<Up>', lambda event: self.scroll_listboxes(-1))
@@ -298,9 +311,11 @@ class Application(tk.Frame):
     def display_conf_update_info(self,
         search_terms = None,
         update=True,
-        sorting=['inactive'],
-        ascending=[1]
+        sorting=None,
+        ascending=None
     ):
+        sorting = self.sorting if sorting is None else sorting
+        ascending = self.ascending if sorting is None else ascending
         self.search_terms = search_terms if search_terms is not None else self.search_terms
         if update == True:
             self.update_info = get_conf_update_information(
@@ -324,7 +339,7 @@ class Application(tk.Frame):
                 for term in self.search_terms:
                     filtered_update = filtered_update[filtered_update['name'].str.contains(term)]
             try:
-                sorted_info = filtered_update.sort_values(self.sorting, ascending=self.ascending)
+                sorted_info = filtered_update.sort_values(sorting, ascending=ascending)
             except IndexError as ie:
                 print("{}".format('\n'.join(arg for arg in ie.args)))
                 sorted_info = filtered_update
@@ -362,7 +377,11 @@ class Application(tk.Frame):
         login.attributes("-topmost", True)
         lf = LoginFrame(login)
         login.mainloop()
-        connection = acquire_conf_connection(self.conf_url, username=lf.username, password=lf.password)
+        connection = acquire_conf_connection(
+            self.conf_url,
+            username=lf.username,
+            password=lf.password
+        )
         login.destroy()
         return connection
 
@@ -379,16 +398,37 @@ class Application(tk.Frame):
 
 
     def btn_search_clicked(self):
-        self.display_conf_update_info(update=False, search_terms=self.entry_search.get().split())
+        self.display_conf_update_info(
+            update=False,
+            search_terms=self.entry_search.get().split()
+        )
 
 
     def cb_clicked(self):
-        self.display_conf_update_info(update=False)
+        self.display_conf_update_info(
+            update=False
+        )
 
 
-    def asc_sorting(self, column):
-        print("Single click on {}".format(column))
+    def asc_sorting(self, label, column, remove):
+        if remove['text'][0:1] in ("\u21e7", "\u21e9"):
+            remove['text'] = remove['text'][6:]
+        pos = 0 if label['text'][0:1] not in ("\u21e7", "\u21e9") else 6
+        label['text'] = "\u21e7" + 5*" " + label['text'][pos:]
+        self.display_conf_update_info(
+            update=False,
+            sorting=[column],
+            ascending=[1]
+        )
 
 
-    def desc_sorting(self, column):
-        print("Double click on {}".format(column))
+    def desc_sorting(self, label, column, remove):
+        if remove['text'][0:1] in ("\u21e7", "\u21e9"):
+            remove['text'] = remove['text'][6:]
+        pos = 0 if label['text'][0:1] not in ("\u21e7", "\u21e9") else 6
+        label['text'] = "\u21e9" + 5*" " + label['text'][pos:]
+        self.display_conf_update_info(
+            update=False,
+            sorting=[column],
+            ascending=[0]
+        )
