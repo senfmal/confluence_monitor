@@ -202,12 +202,6 @@ class Application(tk.Frame):
         self.colC.select_set(index)
 
 
-    def onHyperlinkClicked(self, url):
-        #webbrowser.open_new(url)
-        #print(url)
-        pass
-
-
     def OnVsb(self, *args):
         self.colA.yview(*args)
         self.colB.yview(*args)
