@@ -41,6 +41,7 @@ def get_conf_update_information(confluence, space, theme, category_tag_map):
     cat_check = {}
     cat_lists['name'] = []
     cat_lists['last_updated'] = []
+    cat_lists['url'] = []
     for category in category_tag_map.keys():
         cat_check[category] = False
         cat_lists[category] = []
@@ -48,6 +49,7 @@ def get_conf_update_information(confluence, space, theme, category_tag_map):
         cat_match_count = 0
         name = None
         last_updated = -1
+        url = ""
         for category in category_tag_map.keys():
             cat_check[category] = False
         if confluence.page_exists(space, page[1]):
@@ -60,6 +62,7 @@ def get_conf_update_information(confluence, space, theme, category_tag_map):
                     name = page[1]
                     content = confluence.get_page_by_id(page[0], expand='history')
                     last_updated_date = content['history']['_expandable']['lastUpdated']
+                    url = content['_links']['base'] + '/pages/viewpage.action?pageId=' + page[0]
                     if content is None or len(last_updated_date) == 0:
                         content = confluence.get_page_by_id(page[0], expand='version')
                         last_updated_date = content['version']['when']
@@ -81,6 +84,7 @@ def get_conf_update_information(confluence, space, theme, category_tag_map):
                     cat_check["untagged"] = True
                 cat_lists['name'].append(name)
                 cat_lists['last_updated'].append(last_updated)
+                cat_lists['url'].append(url)
                 for category in category_tag_map.keys():
                     cat_lists[category].append(cat_check[category])
     return pd.DataFrame(data=cat_lists)

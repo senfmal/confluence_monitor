@@ -5,6 +5,8 @@ try:
     import Tkinter as tk
 except ImportError:
     import tkinter as tk
+import webbrowser
+
 
 class Application(tk.Frame):
     def __init__(
@@ -33,6 +35,7 @@ class Application(tk.Frame):
         else:
             self.sorting, self.ascending = self.change_sorting()
         self.thresholds = thresholds
+        self.sorted_info = None
         self.config_environ()
         self.create_widgets()
 
@@ -199,6 +202,12 @@ class Application(tk.Frame):
         self.colC.select_set(index)
 
 
+    def onHyperlinkClicked(self, url):
+        #webbrowser.open_new(url)
+        #print(url)
+        pass
+
+
     def OnVsb(self, *args):
         self.colA.yview(*args)
         self.colB.yview(*args)
@@ -227,6 +236,11 @@ class Application(tk.Frame):
             if index != int(self.colC.curselection()[0]):
                 self.colC.selection_clear(0, 'end')
             self.select_table_row(index)
+            webbrowser.open_new(
+                self.sorted_info[
+                    self.sorted_info['name']==self.colA.get(index)
+                ].iloc[0]['url']
+            )
         except IndexError:
             return "break"
         return "break"
@@ -339,13 +353,13 @@ class Application(tk.Frame):
                 for term in self.search_terms:
                     filtered_update = filtered_update[filtered_update['name'].str.contains(term)]
             try:
-                sorted_info = filtered_update.sort_values(sorting, ascending=ascending)
+                self.sorted_info = filtered_update.sort_values(sorting, ascending=ascending)
             except IndexError as ie:
                 print("{}".format('\n'.join(arg for arg in ie.args)))
-                sorted_info = filtered_update
+                self.sorted_info = filtered_update
             self.delete_table()
-            for item in list(sorted_info['name']):
-                page = sorted_info[sorted_info['name']==item]
+            for item in list(self.sorted_info['name']):
+                page = self.sorted_info[self.sorted_info['name']==item]
                 self.colA.insert("end", item)
                 cat_type, bgcolor = self.get_Type(page)
                 self.colB.insert("end", ', '.join(item for item in cat_type))
