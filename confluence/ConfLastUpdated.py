@@ -3,6 +3,8 @@ import getpass
 from atlassian import Confluence
 import pandas as pd
 import typing
+import pprint
+import sys
 
 
 def acquire_conf_connection(url, username=None, password=None):
@@ -60,12 +62,18 @@ def get_conf_update_information(confluence, space, theme, category_tag_map):
                 if label['name'] == theme:
                     last_updated_date = None
                     name = page[1]
-                    content = confluence.get_page_by_id(page[0], expand='history')
+                    content = confluence.get_page_by_id(page[0], expand='history')                    
                     last_updated_date = content['history']['_expandable']['lastUpdated']
+                    if len(last_updated_date) == 0:
+                        last_updated_date = content['version']['when']
                     url = content['_links']['base'] + '/pages/viewpage.action?pageId=' + page[0]
                     if content is None or len(last_updated_date) == 0:
-                        content = confluence.get_page_by_id(page[0], expand='version')
-                        last_updated_date = content['version']['when']
+                        try:
+                            content = confluence.get_page_by_id(page[0], expand='version')
+                            last_updated_date = content['version']['when']
+                        except TypeError as te:
+                            pprint.pprint("TypeError occurred: {} \--> {}".format(te, content))
+                            sys.exit()
                     if last_updated_date is not None:
                         last_updated = (datetime.now() - datetime.strptime(
                             last_updated_date,
