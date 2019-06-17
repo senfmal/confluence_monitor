@@ -47,11 +47,13 @@ def get_conf_update_information(confluence, space, theme, category_tag_map):
     for category in category_tag_map.keys():
         cat_check[category] = False
         cat_lists[category] = []
+    cat_lists['tags'] = []
     for page in get_conf_pages_ids(confluence, space):
         cat_match_count = 0
         name = None
         last_updated = -1
         url = ""
+        tags = []
         for category in category_tag_map.keys():
             cat_check[category] = False
         if confluence.page_exists(space, page[1]):
@@ -62,18 +64,23 @@ def get_conf_update_information(confluence, space, theme, category_tag_map):
                 if label['name'] == theme:
                     last_updated_date = None
                     name = page[1]
-                    content = confluence.get_page_by_id(page[0], expand='history')                    
+                    content = confluence.get_page_by_id(page[0], expand='history')
                     last_updated_date = content['history']['_expandable']['lastUpdated']
                     if len(last_updated_date) == 0:
-                        last_updated_date = content['version']['when']
-                    url = content['_links']['base'] + '/pages/viewpage.action?pageId=' + page[0]
-                    if content is None or len(last_updated_date) == 0:
                         try:
-                            content = confluence.get_page_by_id(page[0], expand='version')
                             last_updated_date = content['version']['when']
-                        except TypeError as te:
-                            pprint.pprint("TypeError occurred: {} \--> {}".format(te, content))
-                            sys.exit()
+                        except KeyError as ke:
+                            try:
+                                content = confluence.get_page_by_id(
+                                    page[0], expand='version'
+                                )
+                                last_updated_date = content['version']['when']
+                            except TypeError as te:
+                                print("TypeError occurred:\n{} \n\n {}".format(
+                                    te, content)
+                                )
+                                sys.exit()
+                    url = content['_links']['base'] + '/pages/viewpage.action?pageId=' + page[0]
                     if last_updated_date is not None:
                         last_updated = (datetime.now() - datetime.strptime(
                             last_updated_date,
@@ -87,6 +94,8 @@ def get_conf_update_information(confluence, space, theme, category_tag_map):
                     cat_match_count += 1
                     cat_check[cat_match] = True
                     cat_match = None
+                else:
+                    tags.append(label['name'])
             if name is not None:
                 if cat_match_count == 0:
                     cat_check["untagged"] = True
@@ -95,4 +104,5 @@ def get_conf_update_information(confluence, space, theme, category_tag_map):
                 cat_lists['url'].append(url)
                 for category in category_tag_map.keys():
                     cat_lists[category].append(cat_check[category])
+                cat_lists['tags'].append(','.join(tag for tag in tags))
     return pd.DataFrame(data=cat_lists)

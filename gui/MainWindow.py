@@ -311,7 +311,9 @@ class Application(tk.Frame):
             if page.iloc[0][category]:
                 cat_type.append(category)
         for threshold in self.thresholds.keys():
-            if page.iloc[0][threshold] and int(page.iloc[0]['last_updated']) > self.thresholds[threshold]['limit']:
+            if page.iloc[0][threshold] and int(
+                    page.iloc[0]['last_updated']
+                ) > self.thresholds[threshold]['limit']:
                 bgcolor = self.thresholds[threshold]['bgcolor']
         return cat_type, bgcolor
 
@@ -335,19 +337,29 @@ class Application(tk.Frame):
         filtered_info = []
         for category in self.conf_categories.keys():
             if self.var_filters[category].get() == 1:
-                filtered_info.append(self.update_info[(self.update_info[category]==True) &
-                    (self.update_info['inactive']==False)
-            ])
+                filtered_info.append(
+                    self.update_info[(self.update_info[category]==True) &
+                        (self.update_info['inactive']==False)
+                    ]
+                )
             if category == 'inactive':
                 if self.var_filters[category].get() == 1:
-                    filtered_info.append(self.update_info[self.update_info[category]==True])
+                    filtered_info.append(
+                        self.update_info[self.update_info[category]==True]
+                    )
         if filtered_info:
             filtered_update = pd.concat(filtered_info)
             if self.search_terms is not None:
                 for term in self.search_terms:
-                    filtered_update = filtered_update[filtered_update['name'].str.contains(term)]
+                    filtered_update = filtered_update[
+                        (filtered_update['name'].str.upper()).str.contains(term.upper()) |
+                        (filtered_update['tags'].str.upper()).str.contains(term.upper())
+                    ]
             try:
-                self.sorted_info = filtered_update.sort_values(sorting, ascending=ascending)
+                self.sorted_info = filtered_update.sort_values(
+                    sorting,
+                    ascending=ascending
+                )
             except IndexError as ie:
                 print("{}".format('\n'.join(arg for arg in ie.args)))
                 self.sorted_info = filtered_update
