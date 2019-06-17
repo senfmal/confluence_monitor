@@ -38,6 +38,28 @@ def get_key_for_value_in_list(check_val, d):
     return None
 
 
+def check_parent_labels_for_theme(confluence, theme, page):
+    ancestors = confluence.get_page_by_id(page, expand='ancestors')['ancestors']
+    for ancestor in ancestors[::-1]:
+        labels = confluence.get_page_labels(
+            ancestor['id'], prefix=None, start=None, limit=None
+        )
+        for label in labels['results']:
+            if label['name'] == theme:
+                return True
+    return False
+
+
+def get_labels_from_page(confluence, page):
+    label_dicts = confluence.get_page_labels(
+        page, prefix=None, start=None, limit=None
+    )['results']
+    labels = []
+    for label in label_dicts:
+        labels.append(label['name'])
+    return labels
+
+
 def get_conf_update_information(confluence, space, theme, category_tag_map):
     cat_lists = {}
     cat_check = {}
@@ -57,45 +79,45 @@ def get_conf_update_information(confluence, space, theme, category_tag_map):
         for category in category_tag_map.keys():
             cat_check[category] = False
         if confluence.page_exists(space, page[1]):
-            labels = confluence.get_page_labels(
-                page[0], prefix=None, start=None, limit=None
-            )
-            for label in labels['results']:
-                if label['name'] == theme:
-                    last_updated_date = None
-                    name = page[1]
-                    content = confluence.get_page_by_id(page[0], expand='history')
-                    last_updated_date = content['history']['_expandable']['lastUpdated']
-                    if len(last_updated_date) == 0:
+            labels = get_labels_from_page(confluence, page[0])
+            if theme in labels or check_parent_labels_for_theme(confluence, theme, page[0]):
+                last_updated_date = None
+                name = page[1]
+                content = confluence.get_page_by_id(page[0], expand='history')
+                last_updated_date = content['history']['_expandable']['lastUpdated']
+                if len(last_updated_date) == 0:
+                    try:
+                        last_updated_date = content['version']['when']
+                    except KeyError as ke:
                         try:
+                            content = confluence.get_page_by_id(
+                                page[0], expand='version'
+                            )
                             last_updated_date = content['version']['when']
-                        except KeyError as ke:
-                            try:
-                                content = confluence.get_page_by_id(
-                                    page[0], expand='version'
-                                )
-                                last_updated_date = content['version']['when']
-                            except TypeError as te:
-                                print("TypeError occurred:\n{} \n\n {}".format(
-                                    te, content)
-                                )
-                                sys.exit()
-                    url = content['_links']['base'] + '/pages/viewpage.action?pageId=' + page[0]
-                    if last_updated_date is not None:
-                        last_updated = (datetime.now() - datetime.strptime(
-                            last_updated_date,
-                            '%Y-%m-%dT%H:%M:%S.%f%z'
-                            ).replace(tzinfo=None)).days
-                    else:
-                        last_updated = 0
-                    last_updated = 0 if last_updated < 0 else last_updated
-                cat_match = get_key_for_value_in_list(label['name'], category_tag_map)
+                        except TypeError as te:
+                            print("TypeError occurred:\n{} \n\n {}".format(
+                                te, content)
+                            )
+                            sys.exit()
+                url = content['_links']['base'] + content['_links']['webui']
+                if last_updated_date is not None:
+                    last_updated = (datetime.now() - datetime.strptime(
+                        last_updated_date,
+                        '%Y-%m-%dT%H:%M:%S.%f%z'
+                        ).replace(tzinfo=None)).days
+                else:
+                    last_updated = 0
+                last_updated = 0 if last_updated < 0 else last_updated
+            for label in labels:
+                if label == theme:
+                    continue
+                cat_match = get_key_for_value_in_list(label, category_tag_map)
                 if cat_match is not None:
                     cat_match_count += 1
                     cat_check[cat_match] = True
                     cat_match = None
                 else:
-                    tags.append(label['name'])
+                    tags.append(label)
             if name is not None:
                 if cat_match_count == 0:
                     cat_check["untagged"] = True
