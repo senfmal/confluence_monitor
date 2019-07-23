@@ -1,11 +1,12 @@
 import os, sys, json
 from gui import MainWindow as mw
 try:
-    import Tkinter as tk ## Python 2.x
+    import Tkinter as tk
 except ImportError:
-    import tkinter as tk ## Python 3.x
+    import tkinter as tk
 
 if __name__ == '__main__':
+    vers_num = 0.7
     try:
         url, space, theme, status_threshold, vorhaben_threshold, block_threshold = sys.argv[1:]
     except ValueError as err:
@@ -20,9 +21,8 @@ if __name__ == '__main__':
                 url = config['CONNECT']['conf_url']
                 space = config['CONNECT']['conf_space']
                 theme = config['CONNECT']['conf_theme']
-                status_threshold = config['THRESHOLDS']['status']
-                vorhaben_threshold = config['THRESHOLDS']['vorhaben']
-                block_threshold = config['THRESHOLDS']['block']
+                thresholds = config['THRESHOLDS']
+                categories = config['CATEGORY']
         except BaseException as err:
         	msg = """You need to specify six parameters:
     1. url e.g. 'http://localhost:8080/'
@@ -38,7 +38,7 @@ if __name__ == '__main__':
         	sys.exit()
 
     root = tk.Tk()
-    root.title("Confluence Monitor v0.1")
+    root.title("Confluence Monitor v{}".format(vers_num))
 
     w = 600 # width for the Tk root
     h = 500 # height for the Tk root
@@ -46,8 +46,9 @@ if __name__ == '__main__':
     ws = root.winfo_screenwidth() # width of the screen
     hs = root.winfo_screenheight() # height of the screen
     # calculate x and y coordinates for the Tk root window
-    x = (ws/2) - (w/2)
-    y = (hs/2) - (h/2)
+    dimensioner = 3
+    x = (ws/dimensioner) - (w/dimensioner)
+    y = (hs/dimensioner) - (h/dimensioner)
     # set the dimensions of the screen
     # and where it is placed
     root.geometry('%dx%d+%d+%d' % (w, h, x, y))
@@ -56,8 +57,7 @@ if __name__ == '__main__':
         conf_url=url,
         conf_space=space,
         conf_theme=theme,
-        status_threshold=status_threshold,
-        vorhaben_threshold=vorhaben_threshold,
-        block_threshold=block_threshold
+        conf_categories=categories,
+        thresholds=thresholds
     )
     app.mainloop()

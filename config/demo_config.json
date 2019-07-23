@@ -4,9 +4,27 @@
     "conf_space": "My Space",
     "conf_theme": "anyGivenTag"
   },
+  "LABELS": {
+    "block": {
+      "tags": ["block"],
+      "sorting": {
+        "priority": 0,
+        "asc": 0
+      }
+    }
+  },
   "THRESHOLDS": {
-    "status": 14,
-    "vorhaben": 30,
-    "block": 180
+    "block": {
+      "limit": 180,
+      "bgcolor": "grey"
+    },
+    "vorhaben": {
+      "limit": 30,
+      "bgcolor": "yellow"
+    },
+    "status": {
+      "limit": 14,
+      "bgcolor": "red"
+      }
   }
 }

@@ -1,2 +1,7 @@
 __pycache__/
-config.json
+config.*
+*.exe
+/Lib/
+/Scripts/
+*.cfg
+/Include/

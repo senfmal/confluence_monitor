@@ -1,9 +1,12 @@
 from confluence.ConfLastUpdated import acquire_conf_connection, get_conf_update_information
 from gui.LoginFrame import LoginFrame
+import pandas as pd
 try:
-    import Tkinter as tk ## Python 2.x
+    import Tkinter as tk
 except ImportError:
-    import tkinter as tk ## Python 3.x
+    import tkinter as tk
+import webbrowser
+
 
 class Application(tk.Frame):
     def __init__(
@@ -11,9 +14,8 @@ class Application(tk.Frame):
         conf_url='http://localhost:8080',
         conf_space=None,
         conf_theme=None,
-        status_threshold=360,
-        vorhaben_threshold=360,
-        block_threshold=360
+        conf_categories={},
+        thresholds={}
     ):
         super().__init__(master)
         self.master = master
@@ -21,16 +23,59 @@ class Application(tk.Frame):
         self.conf_connection = self.connect_to_confluence()
         self.conf_space = conf_space
         self.conf_theme = conf_theme
-        self.status_threshold = status_threshold
-        self.vorhaben_threshold = vorhaben_threshold
-        self.block_threshold = block_threshold
+        self.conf_categories = conf_categories
+        if "untagged" not in self.conf_categories.keys():
+            self.sorting, self.ascending = self.change_sorting("untagged", {
+                "tags": [],
+                "sorting": {
+                    "priority": 0,
+                    "asc": 0
+                }
+            })
+        else:
+            self.sorting, self.ascending = self.change_sorting()
+        self.thresholds = thresholds
+        self.sorted_info = None
+        self.config_environ()
         self.create_widgets()
+
+
+    def change_sorting(self, key=None, value=None):
+        if key is not None:
+            self.conf_categories[key] = value
+        return self.get_sorting(self.conf_categories)
+
+
+    def config_environ(self):
+        self.update_info = None
+        self.search_terms = None
+        self.var_filters = {}
+        for category in self.conf_categories.keys():
+            self.var_filters[category] = tk.IntVar(value=1)
 
 
     def create_widgets(self):
         self.grid_configure(sticky="nsew")
         self.master.grid_rowconfigure(0, weight=1)
         self.master.grid_columnconfigure(0, weight=1)
+
+        self.build_menu()
+        self.build_search()
+        self.add_separator(**{'row': 1, 'columnspan': 5, 'sticky': 'ew'})
+        self.build_filter()
+        self.add_separator(**{'row': 3, 'columnspan': 5, 'sticky': 'ew'})
+        self.build_table()
+        self.attach_bindings()
+
+        self.display_conf_update_info()
+
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
+        self.select_table_row(0)
+
+
+    def build_menu(self):
         self.menu = tk.Menu(self.master)
         self.master.config(menu=self.menu)
         self.nav_menu = tk.Menu(self.menu)
@@ -39,33 +84,81 @@ class Application(tk.Frame):
         self.nav_menu.add_separator()
         self.nav_menu.add_command(label='Quit', command=self.master.destroy, accelerator="Ctrl+Q")
 
-        self.labelColA = tk.Label(self, text="Page", background='lightblue')
-        self.labelColB = tk.Label(self, text="Type", background='lightblue')
-        self.labelColC = tk.Label(self, text="Days w/o update", background='lightblue')
-        self.labelColA.grid(row=0, column=0)
-        self.labelColB.grid(row=0, column=1)
-        self.labelColC.grid(row=0, column=2)
-        self.labelColA.grid_configure(sticky="ew")
-        self.labelColB.grid_configure(sticky="ew")
-        self.labelColC.grid_configure(sticky="ew")
 
-        self.vsb = tk.Scrollbar(self, orient="vertical", command=self.OnVsb)
-        self.colA = tk.Listbox(self, width=50, height=20, yscrollcommand=self.vsb.set, exportselection=0)
-        self.colB = tk.Listbox(self, width=50, height=20, yscrollcommand=self.vsb.set, exportselection=0)
-        self.colC = tk.Listbox(self, width=50, height=20, yscrollcommand=self.vsb.set, exportselection=0)
+    def build_search(self):
+        self.search_frame = tk.Frame(self)
+        self.search_frame.grid(row=0, column=0, columnspan=5, sticky='nsew')
+        self.label_search = tk.Label(self.search_frame, text="Suche:")
+        self.entry_search = tk.Entry(self.search_frame, width=100)
+        self.btn_search = tk.Button(self.search_frame, text="Go", command=self.btn_search_clicked)
+        self.label_search.grid(row=0, column=0, sticky='w')
+        self.entry_search.grid(row=0, column=1, columnspan=3, sticky='ew')
+        self.btn_search.grid(row=0, column=4, sticky='e')
 
-        self.vsb.grid(column=3)
-        self.colA.grid(row=1, column=0)
-        self.colB.grid(row=1, column=1)
-        self.colC.grid(row=1, column=2)
 
-        self.vsb.grid_configure(sticky="nsew")
-        self.colA.grid_configure(sticky="nsew")
-        self.colB.grid_configure(sticky="nsew")
-        self.colC.grid_configure(sticky="nsew")
+    def add_separator(self, parent=None, **kwargs):
+        parent = self if parent is None else parent
+        tk.Frame(parent, height=5, bd=1, relief=tk.SUNKEN).grid(kwargs)
 
+
+    def build_filter(self):
+        self.filter_frame = tk.Frame(self)
+        self.filter_buttons = []
+        for key in self.conf_categories.keys():
+            self.filter_buttons.append(
+                tk.Checkbutton(
+                    self.filter_frame,
+                    text=key,
+                    variable=self.var_filters[key],
+                    command=self.cb_clicked
+                )
+            )
+        self.filter_frame.grid(row=2, column=0, columnspan=len(self.filter_buttons), sticky='nsew')
+        self.filter_label = tk.Label(self.filter_frame, text='Filter nach:')
+        self.add_separator(parent=self.filter_frame, **{'row':1, 'column':0, 'columnspan':len(self.filter_buttons), 'sticky': 'ew'})
+        self.filter_label.grid(row=0, column=0, columnspan=len(self.filter_buttons), sticky='ew')
+        col = 0
+        for btn in self.filter_buttons:
+            btn.grid(row=2, column=col, sticky='nsew')
+            col += 1
+
+
+    def build_table(self):
+        self.table_frame = tk.Frame(self)
+        self.table_frame.grid(row=4, column=0, columnspan=5, sticky="nsew")
+        self.labelColA = tk.Label(self.table_frame, text="Page", background='lightblue')
+        self.labelColB = tk.Label(self.table_frame, text="Type", background='lightblue')
+        self.labelColC = tk.Label(self.table_frame, text="Days w/o update", background='lightblue')
+        self.labelColA.grid(row=0, column=0, sticky="ew")
+        self.labelColB.grid(row=0, column=1, sticky="ew")
+        self.labelColC.grid(row=0, column=2, sticky="ew")
+
+        self.vsb = tk.Scrollbar(self.table_frame, orient="vertical", command=self.OnVsb, takefocus=tk.NO)
+        self.colA = tk.Listbox(self.table_frame, width=50, height=20, yscrollcommand=self.vsb.set, exportselection=0)
+        self.colB = tk.Listbox(self.table_frame, width=50, height=20, yscrollcommand=self.vsb.set, exportselection=0)
+        self.colC = tk.Listbox(self.table_frame, width=50, height=20, yscrollcommand=self.vsb.set, exportselection=0)
+
+        self.vsb.grid(column=3, sticky="nsew")
+        self.colA.grid(row=1, column=0, sticky="nsew")
+        self.colB.grid(row=1, column=1, sticky="nsew")
+        self.colC.grid(row=1, column=2, sticky="nsew")
+
+
+    def attach_bindings(self):
         self.master.bind('<Control-q>', lambda event: self.master.destroy())
         self.master.bind('<Control-r>', lambda event: self.display_conf_update_info())
+        self.labelColA.bind('<Button-1>', lambda event: self.asc_sorting(
+            self.labelColA, "name", self.labelColC
+        ))
+        self.labelColC.bind('<Button-1>', lambda event: self.asc_sorting(
+            self.labelColC, "last_updated", self.labelColA
+        ))
+        self.labelColA.bind('<Button-3>', lambda event: self.desc_sorting(
+            self.labelColA, "name", self.labelColC
+        ))
+        self.labelColC.bind('<Button-3>', lambda event: self.desc_sorting(
+            self.labelColC, "last_updated", self.labelColA
+        ))
         self.colA.bind('<Up>', lambda event: self.scroll_listboxes(-1))
         self.colB.bind('<Up>', lambda event: self.scroll_listboxes(-1))
         self.colC.bind('<Up>', lambda event: self.scroll_listboxes(-1))
@@ -98,12 +191,7 @@ class Application(tk.Frame):
         self.colB.bind('<<ListboxSelect>>', self.OnSelectionChanged)
         self.colC.bind('<<ListboxSelect>>', self.OnSelectionChanged)
 
-        self.display_conf_update_info()
-
-        self.grid_rowconfigure(0, weight=1)
-        self.grid_columnconfigure(0, weight=1)
-
-        self.select_table_row(0)
+        self.entry_search.bind('<Return>', self.OnEnterKeyPressed)
 
 
     def select_table_row(self, index):
@@ -142,6 +230,11 @@ class Application(tk.Frame):
             if index != int(self.colC.curselection()[0]):
                 self.colC.selection_clear(0, 'end')
             self.select_table_row(index)
+            webbrowser.open_new(
+                self.sorted_info[
+                    self.sorted_info['name']==self.colA.get(index)
+                ].iloc[0]['url']
+            )
         except IndexError:
             return "break"
         return "break"
@@ -194,6 +287,10 @@ class Application(tk.Frame):
         return "break"
 
 
+    def OnEnterKeyPressed(self, event):
+        self.btn_search.invoke()
+
+
     def scroll_listboxes(self, yFactor):
         # function runs when a listbox has focus and the Up or Down arrow is pressed
         self.colA.yview_scroll(yFactor, "units")
@@ -207,33 +304,85 @@ class Application(tk.Frame):
         self.colC.selection_clear(0, 'end')
 
 
-    def display_conf_update_info(self):
-        update_info = get_conf_update_information(self.conf_connection, self.conf_space, self.conf_theme)
-        self.delete_table()
-        for k, page in update_info.items():
-            self.colA.insert("end", page['name'])
-            type = []
-            if 'is_block' in page.keys():
-                type.append('Block')
-            if 'is_vorhaben' in page.keys():
-                type.append('Vorhaben')
-            if 'is_status' in page.keys():
-                type.append('Status')
-            if 'is_news' in page.keys():
-                type.append('News')
-            self.colB.insert("end", ', '.join(item for item in type))
-            self.colC.insert("end", page['lastUpdated'])
-            if 'Block' in type and int(page['lastUpdated']) > self.block_threshold:
-                self.colC.itemconfig('end', background='grey')
-            if 'Vorhaben' in type and int(page['lastUpdated']) > self.vorhaben_threshold:
-                self.colC.itemconfig('end', background='yellow')
-            if 'Status' in type and int(page['lastUpdated']) > self.status_threshold:
-                self.colC.itemconfig('end', background='red')
-            self.colA.config(width=0)
-            self.colB.config(width=0)
-            self.colC.config(width=15)
-            self.winfo_toplevel().wm_geometry("")
-        self.select_table_row(0)
+    def get_Type(self, page):
+        cat_type = []
+        bgcolor = self['bg']
+        for category in self.conf_categories.keys():
+            if page.iloc[0][category]:
+                cat_type.append(category)
+        for threshold in self.thresholds.keys():
+            if page.iloc[0][threshold] and int(
+                    page.iloc[0]['last_updated']
+                ) > self.thresholds[threshold]['limit']:
+                bgcolor = self.thresholds[threshold]['bgcolor']
+        return cat_type, bgcolor
+
+
+    def display_conf_update_info(self,
+        search_terms = None,
+        update=True,
+        sorting=None,
+        ascending=None
+    ):
+        sorting = self.sorting if sorting is None else sorting
+        ascending = self.ascending if sorting is None else ascending
+        self.search_terms = search_terms if search_terms is not None else self.search_terms
+        if update == True:
+            self.update_info = get_conf_update_information(
+                self.conf_connection,
+                self.conf_space,
+                self.conf_theme,
+                self.conf_categories
+            )
+        filtered_info = []
+        for category in self.conf_categories.keys():
+            if self.var_filters[category].get() == 1:
+                filtered_info.append(
+                    self.update_info[(self.update_info[category]==True) &
+                        (self.update_info['inactive']==False)
+                    ]
+                )
+            if category == 'inactive':
+                if self.var_filters[category].get() == 1:
+                    filtered_info.append(
+                        self.update_info[self.update_info[category]==True]
+                    )
+        if filtered_info:
+            filtered_update = pd.concat(filtered_info)
+            if self.search_terms is not None:
+                for term in self.search_terms:
+                    filtered_update = filtered_update[
+                        (filtered_update['name'].str.upper()).str.contains(term.upper()) |
+                        (filtered_update['tags'].str.upper()).str.contains(term.upper())
+                    ]
+            try:
+                self.sorted_info = filtered_update.sort_values(
+                    sorting,
+                    ascending=ascending
+                )
+            except IndexError as ie:
+                print("{}".format('\n'.join(arg for arg in ie.args)))
+                self.sorted_info = filtered_update
+            self.delete_table()
+            for item in list(self.sorted_info['name']):
+                page = self.sorted_info[self.sorted_info['name']==item]
+                self.colA.insert("end", item)
+                cat_type, bgcolor = self.get_Type(page)
+                self.colB.insert("end", ', '.join(item for item in cat_type))
+                self.colC.insert("end", page.iloc[0]['last_updated'])
+                if not page.iloc[0]['inactive']:
+                    self.colC.itemconfig('end', background=bgcolor)
+                else:
+                    self.colA.itemconfig('end', foreground='gray')
+                    self.colB.itemconfig('end', foreground='gray')
+                    self.colC.itemconfig('end', foreground='gray')
+                self.colA.config(width=0)
+                self.colB.config(width=0)
+                self.colC.config(width=15)
+                self.winfo_toplevel().wm_geometry("")
+            self.select_table_row(0)
+        else:
+            self.delete_table()
 
 
     def delete_table(self):
@@ -248,6 +397,58 @@ class Application(tk.Frame):
         login.attributes("-topmost", True)
         lf = LoginFrame(login)
         login.mainloop()
-        connection = acquire_conf_connection(self.conf_url, username=lf.username, password=lf.password)
+        connection = acquire_conf_connection(
+            self.conf_url,
+            username=lf.username,
+            password=lf.password
+        )
         login.destroy()
         return connection
+
+
+    def get_sorting(self, categories):
+        sort_cat = []
+        ascending = []
+        for i in range(len(categories)):
+            for category, attributes in categories.items():
+                if attributes['sorting']['priority']==i and i > 0:
+                    sort_cat.append(category)
+                    ascending.append(attributes['sorting']['asc'])
+        return sort_cat, ascending
+
+
+    def btn_search_clicked(self):
+        self.display_conf_update_info(
+            update=False,
+            search_terms=self.entry_search.get().split()
+        )
+
+
+    def cb_clicked(self):
+        self.display_conf_update_info(
+            update=False
+        )
+
+
+    def asc_sorting(self, label, column, remove):
+        if remove['text'][0:1] in ("\u21e7", "\u21e9"):
+            remove['text'] = remove['text'][6:]
+        pos = 0 if label['text'][0:1] not in ("\u21e7", "\u21e9") else 6
+        label['text'] = "\u21e7" + 5*" " + label['text'][pos:]
+        self.display_conf_update_info(
+            update=False,
+            sorting=[column],
+            ascending=[1]
+        )
+
+
+    def desc_sorting(self, label, column, remove):
+        if remove['text'][0:1] in ("\u21e7", "\u21e9"):
+            remove['text'] = remove['text'][6:]
+        pos = 0 if label['text'][0:1] not in ("\u21e7", "\u21e9") else 6
+        label['text'] = "\u21e9" + 5*" " + label['text'][pos:]
+        self.display_conf_update_info(
+            update=False,
+            sorting=[column],
+            ascending=[0]
+        )
